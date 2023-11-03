@@ -27,7 +27,7 @@ The contents of each subdirectory are as follows:
 
 ## Execution Prerequisites ##
 
-Latest development efforts for the **propNav** program has been with Anaconda 3 Python versions 3.7.4 and 3.9.18 on a Windows 10 Pro system using the following Conda packages.
+Latest development effort for the **propNav** program has been with Anaconda 3 Python versions 3.7.4 and 3.9.18 on a Windows 10 Pro system using the following Conda packages.
 
  <p align="center">Versions of requisite modules associated with Python version
   <table rows="6" cols="3">
@@ -108,4 +108,4 @@ Although references [3] through [5] were not consulted during development of the
 
 ## Epilogue ##
 
-There are numerous YouTube videos presenting 3-DOF kinematic and 6-DOF dynamic missile models with implementations of simplified to complete proportional navigation guidance control loops. In most cases the models are built using MATLAB and Simulink, which tends to hide technical details within layers of widget abstraction. The purpose of this rudimentary Python model is to provide readily accessable code incorporating fundamental modelling aspects without depending on black box routines hiding implementation details. The proportional navigation formulations based on engagment kinematics,  and integration of equations of motion state variable derivates are obvious, even to the most casual observer.
+There are numerous YouTube videos presenting 3-DOF kinematic and 6-DOF dynamic missile models with implementations of simplified to complete proportional navigation guidance control loops. In most cases the models are built using MATLAB and Simulink, which tends to hide technical details within layers of widget abstraction. The purpose of this rudimentary Python model is to provide readily accessable code incorporating fundamental simulation features  without depending on black box routines hiding implementation details. The proportional navigation formulations based on engagment kinematics,  and integration of equations of motion state variable derivates are obvious, even to the most casual observer.
