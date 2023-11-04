@@ -8,8 +8,8 @@
 # Auth: Gary E. Deschaines
 # Date: 25 Oct 2023
 # Prog: Proportional navigation guidance missile flyout model
-# Desc: Application of selectable proportional navigation guidance
-#       laws (True, Pure, ZEM, or Augmented) for missile engagement
+# Desc: Application of selectable proportional navigation guidance laws
+#       (True, Pure, ZEM, or Augmented Pure) for missile engagement
 #       of a target. 3-DOF point mass kinematic model for missile and
 #       target. Ideal missile control; no lag with 100% effective, but 
 #       bounded commanded acceleration, and perfect command response.
@@ -630,13 +630,13 @@ if __name__ == "__main__":
               (Vt0[0], Vt0[1], Vt0[2]))
         print("Missile initial position: [%9.2f, %9.2f, %9.2f]" % 
               (Pm0[0], Pm0[1], Pm0[2]))
-        print("Missile velocity magnitude:  %9.3f" % magVm)
+        print("Missile velocity magnitude:   %9.3f" % magVm)
         print("Estimated time-to-intercept:  %9.5f" % tint)
         print("Estimated target position:  [%9.2f, %9.2f, %9.2f]" % 
               (EstPt[0], EstPt[1], EstPt[2]))
         print("Missile (az, el) lead angles:  (%8.3f, %8.3f) degrees" % 
               (maz, mel))
-        print("Missile initial velocity:  [%9.3f, %9.3f, %9.3f]" % 
+        print("Missile initial velocity:   [%9.3f, %9.3f, %9.3f]" % 
               (Vm0[0], Vm0[1], Vm0[2]))
     
     # Initialize state vector.
@@ -1061,7 +1061,7 @@ if __name__ == "__main__":
                                    Pte[0,0,i], -Pte[0,1,i], -Pte[0,2,i]),
                       file=f)
                 print(fmt2 % \
-                      (-9999, -9999, PHImd[i],   THTm[i], PSIm[i], 
+                      (-9999, -9999, PHImd[i], THTm[i], PSIm[i], 
                                      PHItd[i], THTt[i], PSIt[i]),
                       file=f)
         
@@ -1074,7 +1074,7 @@ if __name__ == "__main__":
                                        Pte[0,0,i], -Pte[0,1,i], -Pte[0,2,i]),
                       file=f)
             print(fmt2 % \
-                      (-9999, -9999, PHImd[i],   THTm[i], PSIm[i], 
+                      (-9999, -9999, PHImd[i], THTm[i], PSIm[i], 
                                      PHItd[i], THTt[i], PSIt[i]),
                       file=f)
             
