@@ -240,7 +240,7 @@ def Wlos(Vrel, Rlos, Ulos):
 def Amslc(Rlos, Vt, At, Vm, N):
     """
     This routine is the application of selected proportional
-    navigation method - True, Pure, FEM or Augmented.
+    navigation method - True, Pure, FEM or AugP.
     
     Globals
     -------
@@ -303,7 +303,7 @@ def pitchAngle(Vt):
     return theta  # Note: theta in radians.
 
 def bankAngle(At, Vt):
-    # Note: Uz, g are global.
+    # Note: RPD and g are global.
     UVt = Uvec(Vt)
     # Calculate turning acceleration normal to Vt.
     Atn = At - np.dot(At, UVt)*UVt
@@ -466,7 +466,7 @@ N_TIME = N_STEP*T_STEP
 
 nSamples = int(ceil(T_STOP/N_TIME)) + 1
     
-if PLOT_DATA:
+if PLOT_DATA or PRINT_TXYZ:
     Time = np.zeros(nSamples+1)  # simulation time
     Ptx  = np.zeros(nSamples+1)  # target position x
     Pty  = np.zeros(nSamples+1)  # target position y
