@@ -100,11 +100,11 @@ RPD = atan(1.0)/45.0  # radians per degree
 DPR = 1.0/RPD         # degrees per radian
 g   = 9.80665         # gravitational acceleration at sea-level (meters/s/s)
 
-# Unit vectors for Cartesion frame X,Y,Z axes.
+# Unit vectors for inertial Cartesion frame X,Y,Z axes.
 
-Ux = np.array([1.0, 0.0, 0.0])
-Uy = np.array([0.0, 1.0, 0.0])
-Uz = np.array([0.0, 0.0, 1.0])  
+Uxi = np.array([1.0, 0.0, 0.0])
+Uyi = np.array([0.0, 1.0, 0.0])
+Uzi = np.array([0.0, 0.0, 1.0])  
 
 # Proportional Navigation law (method) selection.
 
@@ -116,7 +116,7 @@ PN_LAWS = {PN_TRUE:'True',  PN_PURE:'Pure', PN_ZEM:'ZEM', PN_AUGP:'AugP'}
 PNAV    = PN_PURE
 
 Nm = 4    # proportional navigation constant
-Nt = 0.0  # target turning acceleration (g's)
+Nt = 5.0  # target turning acceleration (g's)
 
 # Set missile type and acceleration maximum.
 
@@ -132,8 +132,8 @@ Ammax = Gmmax[MSL]*g     # maximum missile acceleration (meters/s/s)
 # estimation of time-to-intercept of a non-maneuvering
 # target with constant velocity and heading.
 
-maz = 10.0
-mel = 12.0
+maz = 0.0
+mel = 0.0
 
 # Define target and missile initial states.
 
@@ -151,10 +151,10 @@ else:
 # Define target turning/climbing rotation axis unit vector.
 
 if MSL == SAM:
-    UWt = Uz  # for level turn in XY plane
+    UWt = Uzi  # for level turn in XY plane
     #UWt = np.array([-0.2418, 0.2418, 0.9397])  # for diving turn
 else:
-    UWt = Uy  # for climbing turn in XZ plane
+    UWt = Uyi  # for climbing turn in XZ plane
 UWt = UWt/la.norm(UWt)
 
 # Assemble run case identifier appended to "./out/TXYZ.OUT."
@@ -551,16 +551,24 @@ def collectData(i, t, S):
     dVt, dPt, dVm, dPm = getSdot(dS)
             
     # Calculate current time-to-go, LOS rate, closing velocity
-    # closing distance, and missile acceleration in g's.
+    # closing distance, missile acceleration in g's, and ZEM.
 
     Ulos  = Uvec(Rlos)
     tgo   = timeToGo(Rlos, Vt, Vm)
     Wlosi = Wlos(Vrel(Vt,Vm), Rlos, Ulos)
     Wlosb = np.matmul(M, Wlosi)
-    losr  = np.sign(np.dot(Wlosb,-Uy))*la.norm(Wlosb)
+    if abs(Wlosb[2]) >= abs(Wlosb[1]):
+        # predominantly yaw maneuver
+        Uzb  = np.matmul(M, -Uzi)
+        wsgn = np.sign(np.dot(Wlosb, Uzb))
+    else:
+        # predominantly pitch maneuver
+        Uyb  = np.matmul(M, -Uyi)
+        wsgn = np.sign(np.dot(Wlosb, Uyb))
+    losr  = wsgn*la.norm(Wlosb)
     vcls  = la.norm(Vclose(Vrel(Vt,Vm), Ulos))
     dcls  = Dclose(S)
-    acmg  = np.sign(np.dot(Wlosb,-Uy))*la.norm(dVm)/g
+    acmg  = wsgn*la.norm(dVm)/g
     zemd  = la.norm(ZEMn(Rlos, Vrel(Vt,Vm), tgo))
         
     # Display current missile and target states and
@@ -713,12 +721,13 @@ if __name__ == "__main__":
     # stop time, reduce step size and integrate
     # till final stop condition.
     
-    count = 0  # account for non-covergent intercepts
-
-    while (tStep > 0.00005) and (count < 4):
+    num_trys = 0  # account for non-covergent intercepts
+    max_trys = 4
+    
+    while (tStep > 0.00005) and (num_trys < max_trys):
         
-        print("\nt=%9.5f tStep=%9.5f count=%d Dclose=%f" % 
-              (S[0], tStep, count, Dclose(S)))
+        print("\nt=%9.5f  tStep=%9.5f  num_trys=%d  Dclose=%f" % 
+              (S[0], tStep, num_trys, Dclose(S)))
         
         S = rk4.get_Sprev()
         
@@ -733,14 +742,20 @@ if __name__ == "__main__":
             S = rk4.step(S, dotS)
             
         if tStep == last_tStep:
-            count = count + 1
+            num_trys =num_trys + 1
     
     S = rk4.get_Sprev()
     t = S[0]
     
-    if count == 4:
+    if num_trys == max_trys:
         
         print("\n*** Non-convergent Intercept ***")
+        
+        INTERCEPT = False
+        
+    else:
+    
+        INTERCEPT = True
         
     # Display last missile and target states and
     # intercept status; collect data for plotting
@@ -780,10 +795,14 @@ if __name__ == "__main__":
         plt.xlim([Time[istop-3], Time[istop]])
         plt.ylim([-1.0, Dcls[istop-3]])
         plt.grid()
-        plt.plot(Time[istop-3:iend], Dcls[istop-3:iend], 'o:k',
-                 Time[istop], Dcls[istop], 'X:m')
-        plt.legend(['Distance','Intecept'])
-        
+        plt.plot(Time[istop-3:iend], Dcls[istop-3:iend], 'o:k')
+        if INTERCEPT:
+            plt.plot(Time[istop], Dcls[istop], 'X:m')
+            plt.legend(['Distance','Intecept'])
+        else:
+            plt.plot(Time[istop], Dcls[istop], 'o:c')
+            plt.legend(['Distance','Missed'])
+            
         figures.append(plt.figure(2, figsize=(6,6), dpi=80))
         text = "XY plan view of intercept ({0}, N={1}, At={2})"\
             .format(PN_LAWS[PNAV], int(Nm), int(Nt))
@@ -851,9 +870,14 @@ if __name__ == "__main__":
             plt.ylim([Pm0[1]-Pm0[1]/2.0, Pm0[1]+Pm0[1]/2])
         plt.grid()
         plt.plot(Ptx[0:iend], Pty[0:iend], '-r',
-                 Pmx[0:iend], Pmy[0:iend], '-b',
-                 Pmx[istop:iend], Pmy[istop:iend], 'xm')
-        plt.legend(('Target','Missile','Intercept'), loc='upper left')
+                 Pmx[0:iend], Pmy[0:iend], '-b')
+        if INTERCEPT:
+            plt.plot(Pmx[istop:iend], Pmy[istop:iend], 'xm')
+            plt.legend(('Target','Missile','Intercept'), loc='upper left')
+        else:
+            plt.plot(np.array([Pmx[istop],Ptx[istop]]),
+                     np.array([Pmy[istop],Pty[istop]]), 'oc')
+            plt.legend(('Target','Missile','Missed'), loc='upper left')
         
         figures.append(plt.figure(5, figsize=(6,3), dpi=80))
         text = "XZ profile view of missile/target engagement ({0}, N={1}, At={2})"\
@@ -870,10 +894,15 @@ if __name__ == "__main__":
                       (Pt0[0]-Pm0[0])/2 - 1000.0])
         plt.grid()
         plt.plot(Ptx[0:iend], Ptz[0:iend], '-r',
-                 Pmx[0:iend], Pmz[0:iend], '-b',
-                 Pmx[istop:iend], Pmz[istop:iend], 'xm')
-        plt.legend(('Target','Missile','Intercept'), loc='upper left')
-                
+                 Pmx[0:iend], Pmz[0:iend], '-b')
+        if INTERCEPT:
+            plt.plot(Pmx[istop:iend], Pmz[istop:iend], 'xm')
+            plt.legend(('Target','Missile','Intercept'), loc='upper left')
+        else:
+            plt.plot(np.array([Pmx[istop],Ptx[istop]]),
+                     np.array([Pmz[istop],Ptz[istop]]), 'oc')
+            plt.legend(('Target','Missile','Missed'), loc='upper left')
+         
         figures.append(plt.figure(6, figsize=(6,3), dpi=80))
         text = "Missile acceleration profile ({0}, N={1}, At={2})"\
             .format(PN_LAWS[PNAV], int(Nm), int(Nt))
@@ -988,11 +1017,20 @@ if __name__ == "__main__":
                        color='g', ls=' ', lw=1.0,       
                        marker='X', mew=1.0, mec='g', mfc='g',
                        label='Estimated Intercept')
-        # intercept point in 3D space
-        line5 = Line3D(Pmx[istop:iend], Pmy[istop:iend], Pmz[istop:iend],
-                       color='m', ls=' ', lw=1.0,       
-                       marker='X', mew=1.0, mec='m', mfc='m',
-                       label='Actual Intercept')
+        if INTERCEPT:    
+            # intercept point in 3D space
+            line5 = Line3D(Pmx[istop:iend], Pmy[istop:iend], Pmz[istop:iend],
+                           color='m', ls=' ', lw=1.0,       
+                           marker='X', mew=1.0, mec='m', mfc='m',
+                           label='Actual Intercept')
+        else:
+            # missed target and missile points in 3D space
+            line5 = Line3D(np.array([Pmx[istop],Ptx[istop]]),
+                           np.array([Pmy[istop],Pty[istop]]),
+                           np.array([Pmz[istop],Ptz[istop]]),
+                           color='c', ls=' ', lw=1.0,       
+                           marker='o', mew=1.0, mec='c', mfc='c',
+                           label='Missed Intercept')
         ax.add_line(line1)
         ax.add_line(line2)
         ax.add_line(line3)
