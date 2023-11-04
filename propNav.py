@@ -14,33 +14,54 @@
 #       target. Ideal missile control; no lag with 100% effective, but 
 #       bounded commanded acceleration, and perfect command response.
 #
+# Note: Refactored from a Mathcad 3-DOF kinematic ideal proportional
+#       navigation guidance missile flyout model developed in 1997.
+#       The inertial (fixed) reference frame Cartesian (+X, +Y, +Z)
+#       coordinate system in the Mathcad model correlates with (East,
+#       North, Up), while translational/rotational missile and target
+#       body frame (+x, +y, +z) axes follow the (forward, right, down)
+#       convention. Care must be taken in transforming displacement 
+#       and directional vectors between these coordinate frames, and
+#       describing rotational directions. Specifically, since missile
+#       and target body frame +x axes are aligned with their respective
+#       inertial velocity vectors, positive azimuth rotation is negative
+#       body yaw, while positive elevation rotation is positive body
+#       pitch. Thus, positive accelerations normal to body frame +x
+#       axis are those resulting from positive yaw or pitch rates 
+#       crossed with the body frame inertial velocity vector. The +/-
+#       missile line-of-sigt (LOS) rates and normal accelerations will
+#       be evident in associated profile plots.
+#
 # Refs:
 #
-#  [1] Paul Zarchan and A. Richard Seebass (Editor-in-Chief); 
+#  [1] Paul Zarchan and A. Richard Seebass (Editor-in-Chief), 
 #      "Tactical and Strategic Missile Guidance (Progress in 
-#      Astronautics and Aeronautics, Vol 124)"; American 
+#      Astronautics and Aeronautics, Vol 124)", American 
 #      Institute of Aeronautics and Astronautics, Washington,
-#      D.C.,1990.
+#      D.C., 1990.
 #
-#  [2] Donald T. Greenwood; "Principles of Dynamics"; Prentice-Hall,
+#  [2] Donald T. Greenwood, "Principles of Dynamics", Prentice-Hall,
 #      Inc. of Englewood Clifts, New Jersey, 1965.
 #
-#  [3] Neil F. Palumbo, Ross A. Blauwkamp, and Justin M. Lloyd;
-#      "Basic Principles of Homing Guidance", rev 2018; Johns
+#  [3] Neil F. Palumbo, Ross A. Blauwkamp, and Justin M. Lloyd,
+#      "Basic Principles of Homing Guidance", rev 2018, Johns
 #      Hopkins APL Technical Digest, VOL 29, No 1, 2010. Web
 #      available at secwww.jhuapl.edu/techdigest:
 #      https://secwww.jhuapl.edu/techdigest/Content/techdigest/pdf/V29-N01/29-01-Palumbo_Principles_Rev2018.pdf)
 #
-#  [4] Ben Dickinson; "Missile Guidance Fundamentals Tutorial".
-#      Web available at www.youtube.com:
+#  [4] Ben Dickinson, "Missile Guidance Fundamentals Tutorial", 
+#      last updated Oct. 15, 2023. Web available at www.youtube.com:
 #      https://www.youtube.com/playlist?list=PLcmbTy9X3gXt02z1wNy4KF5ui0tKxdQm7)
 #
-#  [5] Ben Dickinson; "Guidance from Optimal Control".
-#      Web available at www.youtube.com:
+#  [5] Ben Dickinson, "Guidance from Optimal Control",
+#      last updated Apr. 2, 2023. Web available at www.youtube.com:
 #      https://www.youtube.com/playlist?list=PLcmbTy9X3gXsh-o1W60E7rEA35igNj__q)
 #
-# Note: Refactored from a Mathcad 3-DOF kinematic ideal proportional
-#       navigation guidance missile flyout model developed in 1997.
+#  [6] Farham A. Faruqi, "Integrated Navigation, Guidance, and
+#      Control of Missile Systems: 3-D Dynamic Model", Weapon 
+#      Systems Division DSTO, DSTO-TR-2805, Feb., 2013. Web 
+#      available at www.dst.defence.gov.au:
+#      https://www.dst.defence.gov.au/publication/integrated-navigation-guidance-and-control-missile-systems-3-d-dynamic-model
 #
 # Disclaimer:
 #
@@ -94,7 +115,7 @@ PN_AUGP = 4
 PN_LAWS = {PN_TRUE:'True',  PN_PURE:'Pure', PN_ZEM:'ZEM', PN_AUGP:'AugP'}
 PNAV    = PN_PURE
 
-Nm = 3    # proportional navigation constant
+Nm = 4    # proportional navigation constant
 Nt = 0.0  # target turning acceleration (g's)
 
 # Set missile type and acceleration maximum.
@@ -228,13 +249,29 @@ def ZEMn(Rlos, Vtm, tgo):
     ZEMn = ZEM - ZEMr 
     return ZEMn
 
-def Vclose(Vrel, Ulos):
-    Vc = np.dot(Vrel, Ulos)*Ulos
+def Vclose(Vtm, Ulos):
+    # Note:  Closing velocity is defined as -d(Rlos)/dt.
+    Vc = -np.dot(Vtm, Ulos)*Ulos
     return Vc
 
-def Wlos(Vrel, Rlos, Ulos):
-    Vnrm = Vrel - Vclose(Vrel, Ulos)
+def Wlos(Vtm, Rlos, Ulos):
+    # Note:  Following expressions for calculating Wlos
+    #
+    Vnrm = Vtm - Vclose(Vtm, Ulos)
     Wlos = np.cross(-Vnrm, Ulos)/la.norm(Rlos)
+    #
+    # is equivalent to:
+    #
+    #   Wlos = np.cross(Rlos, Vtm)/np.dot(Rlos, Rlos)
+    #
+    # which can be reduced to:
+    #
+    #   Wlos = np.array([Rlos[1]*Vtm[2] - Rlos[2]*Vtm[1],
+    #                    Rlos[2]*Vtm[0] - Rlos[0]*Vtm[2],
+    #                    Rlos[0]*Vtm[1] - Rlos[1]*Vtm[0]
+    #                   ])/np.dot(Rlos, Rlos)
+    #
+    # as shown in derivation of equation (2.18) in ref [6].
     return Wlos
 
 def Amslc(Rlos, Vt, At, Vm, N):
@@ -269,16 +306,16 @@ def Amslc(Rlos, Vt, At, Vm, N):
     Ulos = Uvec(Rlos)
     Vtm  = Vrel(Vt, Vm)
     if PNAV == PN_AUGP:
-        Acmd = N*(np.cross(Wlos(Vtm,Rlos,Ulos), Vm) + At/2.0)
+        Acmd = N*(np.cross(Wlos(Vtm, Rlos, Ulos), Vm) + At/2.0)
     elif PNAV == PN_ZEM:
         tgo  = timeToGo(Rlos, Vt, Vm)
         Acmd = N*ZEMn(Rlos, Vtm, tgo)/(tgo**2)
         Acmd = Acmd - np.dot(Acmd, Uvec(Vm))*Uvec(Vm)  # no thrust control
     elif PNAV == PN_PURE:
-        Acmd = N*np.cross(Wlos(Vtm,Rlos,Ulos), Vm)
+        Acmd = N*np.cross(Wlos(Vtm, Rlos, Ulos), Vm)
     else: # PNAV == PN_TRUE
-        Vc   = la.norm(Vrel(Vm, Vt))
-        Acmd = N*Vc*np.cross(Wlos(Vtm,Rlos,Ulos), Ulos)
+        Vc   = la.norm(Vclose(Vtm, Ulos))
+        Acmd = N*Vc*np.cross(Wlos(Vtm, Rlos, Ulos), Ulos)
         Acmd = Acmd - np.dot(Acmd, Uvec(Vm))*Uvec(Vm)  # no thrust control
     return Acmd
 
@@ -740,10 +777,10 @@ if __name__ == "__main__":
         plt.title(text)
         plt.xlabel('Time (sec)')
         plt.ylabel('Distance (meters)')
-        plt.xlim([Time[istop-2], Time[istop]])
-        plt.ylim([-1.0, Dcls[istop-2]])
+        plt.xlim([Time[istop-3], Time[istop]])
+        plt.ylim([-1.0, Dcls[istop-3]])
         plt.grid()
-        plt.plot(Time[istop-2:iend], Dcls[istop-2:iend], 'o:r',
+        plt.plot(Time[istop-3:iend], Dcls[istop-3:iend], 'o:k',
                  Time[istop], Dcls[istop], 'X:m')
         plt.legend(['Distance','Intecept'])
         
@@ -764,8 +801,10 @@ if __name__ == "__main__":
             plt.ylim([(Pmy[istop]+Pty[istop])/2-20.0,
                       (Pmy[istop]+Pty[istop])/2+10.0])
         plt.grid()
-        plt.plot(Ptx[istop-2:iend], Pty[istop-2:iend], 's:r',
-                 Pmx[istop-2:iend], Pmy[istop-2:iend], 'x:b',
+        plt.plot(Ptx[istop-3:iend], Pty[istop-3:iend], 's:r',
+                 Pmx[istop-3:iend], Pmy[istop-3:iend], 'x:b',
+                 np.array([Pmx[istop-3],Ptx[istop-3]]),
+                 np.array([Pmy[istop-3],Pty[istop-3]]), '.:k',
                  np.array([Pmx[istop-2],Ptx[istop-2]]),
                  np.array([Pmy[istop-2],Pty[istop-2]]), '.:k',
                  np.array([Pmx[istop-1],Ptx[istop-1]]),
@@ -789,8 +828,10 @@ if __name__ == "__main__":
             plt.ylim([(Pmz[istop]+Ptz[istop])/2-10.0,
                       (Pmz[istop]+Ptz[istop])/2+5.0])
         plt.grid()
-        plt.plot(Ptx[istop-2:iend], Ptz[istop-2:iend], 's:r',
-                 Pmx[istop-2:iend], Pmz[istop-2:iend], 'x:b',
+        plt.plot(Ptx[istop-3:iend], Ptz[istop-3:iend], 's:r',
+                 Pmx[istop-3:iend], Pmz[istop-3:iend], 'x:b',
+                 np.array([Pmx[istop-3],Ptx[istop-3]]),
+                 np.array([Pmz[istop-3],Ptz[istop-3]]), '.:k',
                  np.array([Pmx[istop-2],Ptx[istop-2]]),
                  np.array([Pmz[istop-2],Ptz[istop-2]]), '.:k',
                  np.array([Pmx[istop-1],Ptx[istop-1]]),
@@ -811,7 +852,7 @@ if __name__ == "__main__":
         plt.grid()
         plt.plot(Ptx[0:iend], Pty[0:iend], '-r',
                  Pmx[0:iend], Pmy[0:iend], '-b',
-                 Ptx[istop:iend], Pty[istop:iend], 'xm')
+                 Pmx[istop:iend], Pmy[istop:iend], 'xm')
         plt.legend(('Target','Missile','Intercept'), loc='upper left')
         
         figures.append(plt.figure(5, figsize=(6,3), dpi=80))
@@ -830,7 +871,7 @@ if __name__ == "__main__":
         plt.grid()
         plt.plot(Ptx[0:iend], Ptz[0:iend], '-r',
                  Pmx[0:iend], Pmz[0:iend], '-b',
-                 Ptx[istop:iend], Ptz[istop:iend], 'xm')
+                 Pmx[istop:iend], Pmz[istop:iend], 'xm')
         plt.legend(('Target','Missile','Intercept'), loc='upper left')
                 
         figures.append(plt.figure(6, figsize=(6,3), dpi=80))
@@ -847,7 +888,7 @@ if __name__ == "__main__":
             plt.ylim([floor(min(Acmg[0:istop]))-0.2, 
                        ceil(max(Acmg[0:istop]))+0.2])
         plt.grid()
-        plt.plot(Time[0:istop], Acmg[0:istop], '-r')
+        plt.plot(Time[0:istop], Acmg[0:istop], ',-k')
         
         figures.append(plt.figure(7, figsize=(6,3), dpi=80))
         text = "Missile velocity magnitude profile ({0}, N={1}, At={2})"\
@@ -858,7 +899,7 @@ if __name__ == "__main__":
         plt.xlim([0.0, T_STOP])
         plt.ylim([Velm[0]-5, ceil(max(Velm[0:istop]))+5])
         plt.grid()
-        plt.plot(Time[0:istop], Velm[0:istop], '-r')
+        plt.plot(Time[0:istop], Velm[0:istop], '-k')
         
         figures.append(plt.figure(8, figsize=(6,3), dpi=80))
         text = "LOS rate profile ({0}, N={1}, At={2})".\
@@ -870,7 +911,7 @@ if __name__ == "__main__":
         plt.ylim([floor(min(LOSd[0:istop]))-0.2, 
                    ceil(max(LOSd[0:istop]))+0.2])
         plt.grid()
-        plt.plot(Time[0:istop], LOSd[0:istop], '-r')
+        plt.plot(Time[0:istop], LOSd[0:istop], '-k')
         
         figures.append(plt.figure(9, figsize=(6,3), dpi=80))
         text = "Closing velocity profile ({0}, N={1}, At={2})"\
@@ -882,7 +923,7 @@ if __name__ == "__main__":
         plt.ylim([floor(min(VELc[0:istop]))-10.0,
                    ceil(max(VELc[0:istop]))+10.0])
         plt.grid()
-        plt.plot(Time[0:istop], VELc[0:istop], '-r')
+        plt.plot(Time[0:istop], VELc[0:istop], '-k')
         
         figures.append(plt.figure(10, figsize=(6,3), dpi=80))
         text = "Zero Error Miss distance profile ({0}, N={1}, At={2})"\
@@ -893,7 +934,7 @@ if __name__ == "__main__":
         plt.xlim([0.0, T_STOP])
         plt.ylim([0.0, ceil(max(ZEMd[0:istop]))+10.0])
         plt.grid()
-        plt.plot(Time[0:istop], ZEMd[0:istop], '-r')
+        plt.plot(Time[0:istop], ZEMd[0:istop], '-k')
         
         figures.append(plt.figure(11, figsize=(8,8), dpi=80))
         ax = figures[-1].add_subplot(projection='3d')

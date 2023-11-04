@@ -64,7 +64,7 @@ If utilizing **propNav** from a command terminal, then from within the ./propNav
 
 If the "PLOT_DATA" flag in the propNav.py file is set to true, then upon completion of the missile flyout, eleven plot figures will be cascaded across the desktop.
 
-The first figure is a plot depicting closing distances at time-of-intercept and for two time steps immediately preceding time-of-intercept. The last figure is a 3D plot of missile/target engagement as illustrated in the image below. The desktop displayed plot is interactive and can be rotated to different viewing angles.
+The first figure is a plot depicting closing distances at time-of-intercept and for three time steps immediately preceding time-of-intercept. The last figure is a 3D plot of missile/target engagement as illustrated in the image below. The desktop displayed plot is interactive and can be rotated to different viewing angles.
 
  <p align="center">
   <img src="./img/Figure_11_1243.png" width="600" height="600" alt="Figure 11 for engagement saved in TXYZ.OUT.1243"/><br>
@@ -73,7 +73,7 @@ The first figure is a plot depicting closing distances at time-of-intercept and 
 
 If the "PRINT_TXYZ" flag in the propNav.py file is set to true, then a trajectory data file of the name "TXYZ.OUT.####" will be written to the ./out subdirectory. This trajectory data file can be read and rendered by the **[threeD](https://github.com/gedeschaines/threeD)** program. Follow steps delineated in the "Execution Overview" section of the associated [README](https://github.com/gedeschaines/threeD#readme) file. The animated GIF displayed in the header of this document was rendered by **threeD**..
 
-Although **propNav** can be run from a command terminal, users may find it easier from within the Spyder IDE application. Doing so allows code modification prior to program execution, such as changing missile or target initial conditions, or selecting different processing options. Additionally, if a Spyder IDE version 4 or greater is utilized, the eleven plot figures can be "inlined" within the Spyder workspace Plot Pane instead of cascaded across the desktop. Unfortunately "inlined" plots are not interactive. This primarily affects the 3D plot presented in figure 11. Instead of being able to rotate the plot for best viewing angle, the "elev" and "azim" arguments in figure 11's "ax.view_init()" procedure call have to be modfied and the progran rerun.
+Although **propNav** can be run from a command terminal, users may find it easier from within the Spyder IDE application. Doing so allows code modification prior to program execution, such as changing missile or target initial conditions, or selecting different processing options. Additionally, if a Spyder IDE version 4 or greater is utilized, the eleven plot figures can be "inlined" within the Spyder workspace Plot Pane instead of cascaded across the desktop. Unfortunately "inlined" plots are not interactive. This primarily affects the 3D plot presented in figure 11. Instead of being able to rotate the plot for best viewing angle, the "elev" and "azim" arguments in figure 11's "ax.view_init()" procedure call have to be modified and the progran rerun.
 
 ## Sample Cases ##
 
@@ -90,17 +90,19 @@ In each case the SAM, with constant velocity of 450 meters/second, was launched 
 
 ## References ##
 
-Although references [3] through [5] were not consulted during development of the original Mathcad 3-DOF kinematic ideal proportional navigation missile model from which this Python program was derived, they were beneficial for implementation of "True", "ZEM" and "Augmented Pure" proportional navigation formulations, and as validation data  sources.
+Although references [3] through [5] were not consulted during development of the original Mathcad 3-DOF kinematic ideal proportional navigation missile model from which this Python program was derived, they were beneficial for implementation of "True", "ZEM" and "Augmented Pure" proportional navigation formulations, and as validation sources. Reference [6] was consulted to verify original expressions for inertial line of sight rotation calculation in the Wlos() procedure, and reformulaton to use standard guidance definition for "closing velocity" as -dRlos/dt.
 
-\[1] Paul Zarchan and A. Richard Seebass (Editor-in-Chief); "Tactical and Strategic Missile Guidance (Progress in Astronautics and Aeronautics, Vol 124)"; American Institute of Aeronautics and Astronautics, Washington, D.C.,1990.
+\[1] Paul Zarchan and A. Richard Seebass (Editor-in-Chief), "Tactical and Strategic Missile Guidance (Progress in Astronautics and Aeronautics, Vol 124)", American Institute of Aeronautics and Astronautics, Washington, D.C.,1990.
 
-\[2] Donald T. Greenwood; "Principles of Dynamics"; Prentice-Hall, Inc. of Englewood Clifts, New Jersey, 1965.
+\[2] Donald T. Greenwood, "Principles of Dynamics", Prentice-Hall, Inc. of Englewood Clifts, New Jersey, 1965.
 
-\[3] Neil F. Palumbo, Ross A. Blauwkamp, and Justin M. Lloyd; "Basic Principles of Homing Guidance", rev 2018; Johns Hopkins APL Technical Digest, VOL 29, No 1, 2010. [Web available at secwww.jhuapl.edu/techdigest/](https://secwww.jhuapl.edu/techdigest/Content/techdigest/pdf/V29-N01/29-01-Palumbo_Principles_Rev2018.pdf)
+\[3] Neil F. Palumbo, Ross A. Blauwkamp, and Justin M. Lloyd, "Basic Principles of Homing Guidance", rev 2018, Johns Hopkins APL Technical Digest, VOL 29, No 1, 2010. [Web available at secwww.jhuapl.edu/techdigest/](https://secwww.jhuapl.edu/techdigest/Content/techdigest/pdf/V29-N01/29-01-Palumbo_Principles_Rev2018.pdf)
 
-\[4] Ben Dickinson; "Missile Guidance Fundamentals Tutorial". [Web available at www.youtube.com](https://www.youtube.com/playlist?list=PLcmbTy9X3gXt02z1wNy4KF5ui0tKxdQm7)
+\[4] Ben Dickinson, "Missile Guidance Fundamentals Tutorial", last updated Oct. 15, 2023. [Web available at www.youtube.com](https://www.youtube.com/playlist?list=PLcmbTy9X3gXt02z1wNy4KF5ui0tKxdQm7)
 
-\[5] Ben Dickinson; "Guidance from Optimal Control". [Web available at www.youtube.com](https://www.youtube.com/playlist?list=PLcmbTy9X3gXsh-o1W60E7rEA35igNj__q)
+\[5] Ben Dickinson, "Guidance from Optimal Control", last updated Apr. 2, 2023. [Web available at www.youtube.com](https://www.youtube.com/playlist?list=PLcmbTy9X3gXsh-o1W60E7rEA35igNj__q)
+
+\[6] Farham A. Faruqi, "Integrated Navigation, Guidance, and Control of Missile Systems: 3-D Dynamic Model", Weapon Systems Division DSTO, DSTO-TR-2805, Feb., 2013. [Web available at www.dst.defence.gov.au](https://www.dst.defence.gov.au/publication/integrated-navigation-guidance-and-control-missile-systems-3-d-dynamic-model)
 
 ## Disclaimers ##
 
