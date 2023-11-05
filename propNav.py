@@ -1073,7 +1073,7 @@ if __name__ == "__main__":
         plt.plot(Time[0:istop], ZEMd[0:istop], '-k')
         
         ## Figure 11 - Target offset sines wrt missile +x axis.
-        figures.append(plt.figure(12, figsize=(6,6), dpi=80))
+        figures.append(plt.figure(11, figsize=(6,6), dpi=80))
         text = "Target offset sines wrt missile +x axis ({0}, N={1}, At={2})"\
             .format(PN_LAWS[PNAV], int(Nm), int(Nt))
         plt.title(text)
@@ -1091,7 +1091,7 @@ if __name__ == "__main__":
             plt.legend(('Target','Missed'), loc='upper left')
         
         ## Figure 12 - 3D missile/target engagement trajectories plot.
-        figures.append(plt.figure(11, figsize=(8,8), dpi=80))
+        figures.append(plt.figure(12, figsize=(8,8), dpi=80))
         ax = figures[-1].add_subplot(projection='3d')
         text = "3D Plot of missile/target engagement ({0}, N={1}, At={2})"\
             .format(PN_LAWS[PNAV], int(Nm), int(Nt))
