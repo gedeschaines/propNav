@@ -62,18 +62,18 @@ Latest development effort for the **propNav** program has been with Anaconda 3 P
 
 If utilizing **propNav** from a command terminal, then from within the ./propNav directory, invoke **python propNav.py** to execute propNav.py.
 
-If the "PLOT_DATA" flag in the propNav.py file is set to true, then upon completion of the missile flyout, eleven plot figures will be cascaded across the desktop.
+If the "PLOT_DATA" flag in the propNav.py file is set to true, then upon completion of the missile flyout, twelve plot figures will be cascaded across the desktop.
 
-The first figure is a plot depicting closing distances at time-of-intercept and for three time steps immediately preceding time-of-intercept. The last figure is a 3D plot of missile/target engagement as illustrated in the image below. The desktop displayed plot is interactive and can be rotated to different viewing angles.
+The first figure is a plot depicting closing distances at time-of-intercept and for three time steps immediately preceding time-of-intercept. The last figure is a 3D plot of missile/target engagement as illustrated in the image below. This desktop displayed plot is interactive and can be rotated to different viewing angles.
 
  <p align="center">
-  <img src="./img/Figure_11_1243.png" width="600" height="600" alt="Figure 11 for engagement saved in TXYZ.OUT.1243"/><br>
-  Figure 11 for engagement saved in TXYZ.OUT.1243
+  <img src="./img/Figure_12_1243.png" width="600" height="600" alt="Figure 12 for engagement saved in TXYZ.OUT.1243"/><br>
+  Figure 12 for engagement saved in TXYZ.OUT.1243
  </p>
 
 If the "PRINT_TXYZ" flag in the propNav.py file is set to true, then a trajectory data file of the name "TXYZ.OUT.####" will be written to the ./out subdirectory. This trajectory data file can be read and rendered by the **[threeD](https://github.com/gedeschaines/threeD)** program. Follow steps delineated in the "Execution Overview" section of the associated [README](https://github.com/gedeschaines/threeD#readme) file. The animated GIF displayed in the header of this document was rendered by **threeD**..
 
-Although **propNav** can be run from a command terminal, users may find it easier from within the Spyder IDE application. Doing so allows code modification prior to program execution, such as changing missile or target initial conditions, or selecting different processing options. Additionally, if a Spyder IDE version 4 or greater is utilized, the eleven plot figures can be "inlined" within the Spyder workspace Plot Pane instead of cascaded across the desktop. Unfortunately "inlined" plots are not interactive. This primarily affects the 3D plot presented in figure 11. Instead of being able to rotate the plot for best viewing angle, the "elev" and "azim" arguments in figure 11's "ax.view_init()" procedure call have to be modified and the program rerun.
+Although **propNav** can be run from a command terminal, users may find it easier from within the Spyder IDE application. Doing so allows code modification prior to program execution, such as changing missile or target initial conditions, or selecting different processing options. Additionally, if a Spyder IDE version 4 or greater is utilized, the twelve plot figures can be "inlined" within the Spyder workspace Plot Pane instead of cascaded across the desktop. Unfortunately "inlined" plots are not interactive. This primarily affects the 3D plot presented in figure 12. Instead of being able to rotate the plot for best viewing angle, the "elev" and "azim" arguments in figure 12's "ax.view_init()" procedure call have to be modified and the program rerun.
 
 ## Sample Cases ##
 

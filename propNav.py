@@ -110,14 +110,14 @@ Uzi = np.array([0.0, 0.0, 1.0])
 
 PN_TRUE = 1  # Default
 PN_PURE = 2
-PN_ZEM  = 3  # Zero Error Miss
+PN_ZEM  = 3  # Zero Effort Miss
 PN_ATPN = 4  # Augmented True Proportional Navigation
 PN_APPN = 5  # Augmented Pure Proportional Navigation
 PN_LAWS = {PN_TRUE:'True', PN_PURE:'Pure', PN_ZEM:'ZEM', 
            PN_ATPN:'ATPN', PN_APPN:'APPN'}
-PNAV    = PN_ATPN
+PNAV    = PN_TRUE
 
-Nm = 3    # proportional navigation constant
+Nm = 4    # proportional navigation constant
 Nt = 3.0  # target turning acceleration (g's)
 
 # Set missile type and acceleration maximum.
@@ -125,7 +125,7 @@ Nt = 3.0  # target turning acceleration (g's)
 SAM = 1  # For engagements described in Caveats section of propNav README.
 AAM = 2  # For engagements presented in Section 3, Modules 3 & 4, Section 4,
          # Module 4 of ref [4], and Section 2, Module 3 of ref [5].
-MSL = AAM
+MSL = SAM
 
 Gmmax = {SAM:8, AAM:30}  # maximum missile acceleration (g's)
 Ammax = Gmmax[MSL]*g     # maximum missile acceleration (meters/s/s)
@@ -142,8 +142,12 @@ else :
 # estimation of time-to-intercept of a non-maneuvering
 # target with constant velocity and heading.
 
-maz = 0.0
-mel = 0.0
+if MSL == SAM:
+   maz = 10.0
+   mel = 12.0
+else:
+   maz = 0.0
+   mel = 0.0
 
 # Define target and missile initial states.
 
@@ -153,15 +157,15 @@ if MSL == SAM:
     Pm0   = np.array([    0.0,    0.0,    2.0])
     magVm = 450.0
 else:
-    if (int(Nt) == 3) and \
+    if ((int(Nt) == 3) and (int(Nm) == 3)) \
        ((PNAV == PN_TRUE) or (PNAV == PN_ATPN) or (PNAV == PN_APPN)):
-        # for Section 2, Module 3 of ref [5]
+        # for Section 2, Module 3 of ref [5].
         Pt0   = np.array([ 9144.0, 4572.0,    0.0])
         Vt0   = np.array([ -304.8,    0.0,    0.0])
         Pm0   = np.array([    0.0, 4572.0,    0.0])
         magVm = 457.2
     else:
-        # For Section 3, Modules 3 & 4 of ref [4]
+        # For Section 3, Modules 3 & 4, Section 4, Module 4 of ref [4].
         Pt0   = np.array([12192.0, 6096.0, 3048.0])
         Vt0   = np.array([ -304.8,    0.0,    0.0])
         Pm0   = np.array([    0.0, 6096.0, 3048.0])
@@ -186,10 +190,12 @@ T_STEP = 0.001
 if MSL == SAM:
     T_STOP =  5.5
 else:
-    if (int(Nt) == 3) and \
+    if ((int(Nt) == 3) and (int(Nm) == 3)) \
         ((PNAV == PN_TRUE) or (PNAV == PN_ATPN) or (PNAV == PN_APPN)):
+        # For Section 2, Module 3 of ref [5].
         T_STOP = 14.5
-    else: 
+    else:
+        # For Section 3, Modules 3 & 4, Section 4, Module 4 of ref [4].
         T_STOP = 12.5
     
 # Set processing output control flags.
@@ -311,7 +317,7 @@ def Wlos(Vtm, Rlos, Ulos):
 def Amslc(Rlos, Vt, At, Vm, N):
     """
     This routine is the application of selected proportional
-    navigation method - True, Pure, FEM or APN.
+    navigation method - True, Pure, FEM, ATPN or APPN.
     
     Globals
     -------
@@ -562,31 +568,33 @@ N_TIME = N_STEP*T_STEP
 nSamples = int(ceil(T_STOP/N_TIME)) + 1
     
 if PLOT_DATA or PRINT_TXYZ:
-    Time = np.zeros(nSamples+1)  # simulation time
-    Ptx  = np.zeros(nSamples+1)  # target position x
-    Pty  = np.zeros(nSamples+1)  # target position y
-    Ptz  = np.zeros(nSamples+1)  # target position z
-    Vtx  = np.zeros(nSamples+1)  # target velocity x
-    Vty  = np.zeros(nSamples+1)  # target velocity y
-    Vtz  = np.zeros(nSamples+1)  # target velocity z
-    Atx  = np.zeros(nSamples+1)  # target acceleration x
-    Aty  = np.zeros(nSamples+1)  # target acceleration y
-    Atz  = np.zeros(nSamples+1)  # target acceleration z
-    Pmx  = np.zeros(nSamples+1)  # missile position x
-    Pmy  = np.zeros(nSamples+1)  # missile position y
-    Pmz  = np.zeros(nSamples+1)  # missile position z
-    Vmx  = np.zeros(nSamples+1)  # missile velocity x
-    Vmy  = np.zeros(nSamples+1)  # missile velocity y
-    Vmz  = np.zeros(nSamples+1)  # missile velocity z
-    Amx  = np.zeros(nSamples+1)  # missile acceleration x
-    Amy  = np.zeros(nSamples+1)  # missile acceleration y
-    Amz  = np.zeros(nSamples+1)  # missile acceleration z
-    Dcls = np.zeros(nSamples+1)  # Closest approach distance
-    LOSd = np.zeros(nSamples+1)  # LOS rate in (deg/sec)
-    VELc = np.zeros(nSamples+1)  # Closing velocity (meters/sec)
-    Acmg = np.zeros(nSamples+1)  # Missile acceleration in g's
-    Velm = np.zeros(nSamples+1)  # Missile velocity magnitude
-    ZEMd = np.zeros(nSamples+1)  # Zero Error Miss distance
+    Time  = np.zeros(nSamples+1)  # simulation time
+    Ptx   = np.zeros(nSamples+1)  # target position x
+    Pty   = np.zeros(nSamples+1)  # target position y
+    Ptz   = np.zeros(nSamples+1)  # target position z
+    Vtx   = np.zeros(nSamples+1)  # target velocity x
+    Vty   = np.zeros(nSamples+1)  # target velocity y
+    Vtz   = np.zeros(nSamples+1)  # target velocity z
+    Atx   = np.zeros(nSamples+1)  # target acceleration x
+    Aty   = np.zeros(nSamples+1)  # target acceleration y
+    Atz   = np.zeros(nSamples+1)  # target acceleration z
+    Pmx   = np.zeros(nSamples+1)  # missile position x
+    Pmy   = np.zeros(nSamples+1)  # missile position y
+    Pmz   = np.zeros(nSamples+1)  # missile position z
+    Vmx   = np.zeros(nSamples+1)  # missile velocity x
+    Vmy   = np.zeros(nSamples+1)  # missile velocity y
+    Vmz   = np.zeros(nSamples+1)  # missile velocity z
+    Amx   = np.zeros(nSamples+1)  # missile acceleration x
+    Amy   = np.zeros(nSamples+1)  # missile acceleration y
+    Amz   = np.zeros(nSamples+1)  # missile acceleration z
+    Dcls  = np.zeros(nSamples+1)  # Closest approach distance
+    LOSd  = np.zeros(nSamples+1)  # LOS rate in (deg/sec)
+    VELc  = np.zeros(nSamples+1)  # Closing velocity (meters/sec)
+    Acmg  = np.zeros(nSamples+1)  # Missile acceleration in g's
+    Velm  = np.zeros(nSamples+1)  # Missile velocity magnitude
+    ZEMd  = np.zeros(nSamples+1)  # Zero Effort Miss distance
+    Thoff = np.zeros(nSamples+1)  # Target horiz. offset angle sines
+    Tvoff = np.zeros(nSamples+1)  # Target vert. offset angle sines
     
 def collectData(i, t, S):
     
@@ -596,13 +604,13 @@ def collectData(i, t, S):
     # Get current missile azimuth and elevation.
     maz, mel = az_el_of_V(Vm)
     
-    # Get current target offset alpha and beta angles in
+    # Get current target offset horiz and vert angles in
     # missile body frame.
     
     Mbi  = Mrot(maz*RPD, mel*RPD, 0.0)
     Rlos = Prel(Pt, Pm)
     Rtmb = np.matmul(Mbi, Rlos)
-    alpha, beta = az_el_of_V(Rtmb)
+    horiz, vert = az_el_of_V(Rtmb)
     
     # Get current target and missile state derivatives.
     dS = dotS(nSvar, S)
@@ -615,18 +623,23 @@ def collectData(i, t, S):
     tgo   = timeToGo(Rlos, Vt, Vm)
     Wlosi = Wlos(Vrel(Vt,Vm), Rlos, Ulos)
     Wlosb = np.matmul(Mbi, Wlosi)
+    Amb   = np.matmul(Mbi,dVm)
     if abs(Wlosb[2]) >= abs(Wlosb[1]):
         # predominantly yaw maneuver
-        Uzb  = np.matmul(Mbi, Uzi)
-        wsgn = -np.sign(np.dot(Wlosb, Uzb))
+        Uzb  = np.matmul(Mbi,  Uzi)  # positive yaw axis
+        Uyb  = np.matmul(Mbi,  Uyi)  # positive accel axis
+        wsgn = np.sign(np.dot(Wlosb, Uzb))
+        asgn = np.sign(np.dot(Amb,   Uyb))
     else:
         # predominantly pitch maneuver
-        Uyb  = np.matmul(Mbi, Uyi)
-        wsgn = np.sign(np.dot(Wlosb, -Uyb))
+        Uyb  = np.matmul(Mbi, -Uyi)  # positive pitch axis
+        Uzb  = np.matmul(Mbi,  Uzi)  # positive accel axis
+        wsgn = np.sign(np.dot(Wlosb, Uyb))
+        asgn = np.sign(np.dot(Amb,   Uzb))
     losr  = wsgn*la.norm(Wlosb)
     vcls  = la.norm(Vclose(Vrel(Vt,Vm), Ulos))
     dcls  = Dclose(S)
-    acmg  = wsgn*la.norm(dVm)/g
+    acmg  = asgn*la.norm(dVm)/g
     zemd  = la.norm(ZEMn(Rlos, Vrel(Vt,Vm), tgo))
         
     # Display current missile and target states and
@@ -648,8 +661,8 @@ def collectData(i, t, S):
         print("Missile velocity magnitude:  %9.3f" % (la.norm(Vm)))
         print("Missile inertial (az, el):    (%8.3f, %8.3f) degrees" % 
                (maz, mel))
-        print("Target offset (alpha, beta):  (%8.3f, %8.3f) degrees" % 
-               (alpha, beta))
+        print("Target offset (horiz, vert):  (%8.3f, %8.3f) degrees" % 
+               (horiz, vert))
         print("time to go:  %9.5f sec" % tgo)
         print("LOS rate:    %9.4f deg/sec" % (losr*DPR))
         print("closing velocity:  %9.4f meters/sec" % vcls)
@@ -659,31 +672,33 @@ def collectData(i, t, S):
         
     if PLOT_DATA or PRINT_TXYZ:
         
-        Time[i] = t
-        Ptx[i]  = Pt[0]
-        Pty[i]  = Pt[1]
-        Ptz[i]  = Pt[2]
-        Vtx[i]  = Vt[0]
-        Vty[i]  = Vt[1]
-        Vtz[i]  = Vt[2]
-        Atx[i]  = dVt[0]
-        Aty[i]  = dVt[1]
-        Atz[i]  = dVt[2]
-        Pmx[i]  = Pm[0]
-        Pmy[i]  = Pm[1]
-        Pmz[i]  = Pm[2]
-        Vmx[i]  = Vm[0]
-        Vmy[i]  = Vm[1]
-        Vmz[i]  = Vm[2]
-        Amx[i]  = dVm[0]
-        Amy[i]  = dVm[1]
-        Amz[i]  = dVm[2]
-        Dcls[i] = dcls
-        LOSd[i] = losr*DPR
-        VELc[i] = vcls
-        Acmg[i] = acmg
-        Velm[i] = la.norm(Vm)
-        ZEMd[i] = zemd
+        Time[i]  = t
+        Ptx[i]   = Pt[0]
+        Pty[i]   = Pt[1]
+        Ptz[i]   = Pt[2]
+        Vtx[i]   = Vt[0]
+        Vty[i]   = Vt[1]
+        Vtz[i]   = Vt[2]
+        Atx[i]   = dVt[0]
+        Aty[i]   = dVt[1]
+        Atz[i]   = dVt[2]
+        Pmx[i]   = Pm[0]
+        Pmy[i]   = Pm[1]
+        Pmz[i]   = Pm[2]
+        Vmx[i]   = Vm[0]
+        Vmy[i]   = Vm[1]
+        Vmz[i]   = Vm[2]
+        Amx[i]   = dVm[0]
+        Amy[i]   = dVm[1]
+        Amz[i]   = dVm[2]
+        Dcls[i]  = dcls
+        LOSd[i]  = losr*DPR
+        VELc[i]  = vcls
+        Acmg[i]  = acmg
+        Velm[i]  = la.norm(Vm)
+        ZEMd[i]  = zemd
+        Thoff[i] = sin(horiz*RPD)
+        Tvoff[i] = sin(vert*RPD)
         
     return
 
@@ -852,6 +867,7 @@ if __name__ == "__main__":
         
         figures = []
         
+        ## Figure 1 - Closing distance at tStop.
         figures.append(plt.figure(1, figsize=(6,3), dpi=80))
         text = "Closing distance ({0}, N={1}, At={2})"\
             .format(PN_LAWS[PNAV], int(Nm), int(Nt))
@@ -870,7 +886,8 @@ if __name__ == "__main__":
         else:
             plt.plot(Time[istop], Dcls[istop], 'o:c')
             plt.legend(['Distance','MinMissDist','Missed'])
-            
+        
+        ## Figure 2 - XY plan view of intercept geometry at tStop.
         figures.append(plt.figure(2, figsize=(6,6), dpi=80))
         text = "XY plan view of intercept ({0}, N={1}, At={2})"\
             .format(PN_LAWS[PNAV], int(Nm), int(Nt))
@@ -905,6 +922,7 @@ if __name__ == "__main__":
                      np.array([Pmy[istop],Pty[istop]]), '.:c')
             plt.legend(('Target','Missile','LOS',' ', ' ','Missed'), loc='upper left')
         
+        ## Figure 3 - XZ profile view of intercept geometry at tStop.
         figures.append(plt.figure(3, figsize=(6,6), dpi=80))
         text = "XZ profile view of intercept ({0}, N={1}, At={2})"\
             .format(PN_LAWS[PNAV], int(Nm), int(Nt))
@@ -939,6 +957,7 @@ if __name__ == "__main__":
                      np.array([Pmz[istop],Ptz[istop]]), '.:c')
             plt.legend(('Target','Missile','LOS',' ',' ','Missed'), loc='upper left')
         
+        ## Figure 4 - XY plan view of missile/target engagement.
         figures.append(plt.figure(4, figsize=(6,6), dpi=80))
         text = "XY plan view of missile/target engagement ({0}, N={1}, At={2})"\
             .format(PN_LAWS[PNAV], int(Nm), int(Nt))
@@ -961,6 +980,7 @@ if __name__ == "__main__":
                      np.array([Pmy[istop],Pty[istop]]), 'oc')
             plt.legend(('Target','Missile','Missed'), loc='upper left')
         
+        ## Figure 5 - XZ profile view of missile/target engagement.
         figures.append(plt.figure(5, figsize=(6,3), dpi=80))
         text = "XZ profile view of missile/target engagement ({0}, N={1}, At={2})"\
             .format(PN_LAWS[PNAV], int(Nm), int(Nt))
@@ -984,8 +1004,21 @@ if __name__ == "__main__":
             plt.plot(np.array([Pmx[istop],Ptx[istop]]),
                      np.array([Pmz[istop],Ptz[istop]]), 'oc')
             plt.legend(('Target','Missile','Missed'), loc='upper left')
-         
+        
+        ## Figure 6 - Missile velocity magnitude vs time of flight.
         figures.append(plt.figure(6, figsize=(6,3), dpi=80))
+        text = "Missile velocity magnitude profile ({0}, N={1}, At={2})"\
+            .format(PN_LAWS[PNAV], int(Nm), int(Nt))
+        plt.title(text)
+        plt.xlabel('Time (sec)')
+        plt.ylabel('Velocity (meters/sec)')
+        plt.xlim([0.0, T_STOP])
+        plt.ylim([Velm[0]-5, ceil(max(Velm[0:istop]))+5])
+        plt.grid()
+        plt.plot(Time[0:istop], Velm[0:istop], '-k')
+        
+        ## Figure 7 - Missile acceleration vs time of flight.
+        figures.append(plt.figure(7, figsize=(6,3), dpi=80))
         text = "Missile acceleration profile ({0}, N={1}, At={2})"\
             .format(PN_LAWS[PNAV], int(Nm), int(Nt))
         plt.title(text)
@@ -1001,17 +1034,7 @@ if __name__ == "__main__":
         plt.grid()
         plt.plot(Time[0:istop], Acmg[0:istop], ',-k')
         
-        figures.append(plt.figure(7, figsize=(6,3), dpi=80))
-        text = "Missile velocity magnitude profile ({0}, N={1}, At={2})"\
-            .format(PN_LAWS[PNAV], int(Nm), int(Nt))
-        plt.title(text)
-        plt.xlabel('Time (sec)')
-        plt.ylabel('Velocity (meters/sec)')
-        plt.xlim([0.0, T_STOP])
-        plt.ylim([Velm[0]-5, ceil(max(Velm[0:istop]))+5])
-        plt.grid()
-        plt.plot(Time[0:istop], Velm[0:istop], '-k')
-        
+        ## Figure 8 - Line-of-Sight rate vs time of flight.
         figures.append(plt.figure(8, figsize=(6,3), dpi=80))
         text = "LOS rate profile ({0}, N={1}, At={2})".\
             format(PN_LAWS[PNAV], int(Nm), int(Nt))
@@ -1024,6 +1047,7 @@ if __name__ == "__main__":
         plt.grid()
         plt.plot(Time[0:istop], LOSd[0:istop], '-k')
         
+        ## Figure 9 - Closing velocity vs time of flight.
         figures.append(plt.figure(9, figsize=(6,3), dpi=80))
         text = "Closing velocity profile ({0}, N={1}, At={2})"\
             .format(PN_LAWS[PNAV], int(Nm), int(Nt))
@@ -1036,8 +1060,9 @@ if __name__ == "__main__":
         plt.grid()
         plt.plot(Time[0:istop], VELc[0:istop], '-k')
         
+        ## Figure 10 - Zero Effort Miss distance vs time of flight.
         figures.append(plt.figure(10, figsize=(6,3), dpi=80))
-        text = "Zero Error Miss distance profile ({0}, N={1}, At={2})"\
+        text = "Zero Effort Miss distance profile ({0}, N={1}, At={2})"\
             .format(PN_LAWS[PNAV], int(Nm), int(Nt))
         plt.title(text)
         plt.xlabel('Time (sec)')
@@ -1047,6 +1072,25 @@ if __name__ == "__main__":
         plt.grid()
         plt.plot(Time[0:istop], ZEMd[0:istop], '-k')
         
+        ## Figure 11 - Target offset sines wrt missile +x axis.
+        figures.append(plt.figure(12, figsize=(6,6), dpi=80))
+        text = "Target offset sines wrt missile +x axis ({0}, N={1}, At={2})"\
+            .format(PN_LAWS[PNAV], int(Nm), int(Nt))
+        plt.title(text)
+        plt.xlabel('Horizontal Offset (Sine)')
+        plt.ylabel('Vertical Offset (Sine)')
+        plt.xlim([-1.0,  1.0])
+        plt.ylim([ 1.0, -1.0])
+        plt.grid()
+        plt.plot(Thoff[0:iend], Tvoff[0:iend], ',:r')
+        if INTERCEPT:
+            plt.plot(Thoff[istop:iend], Tvoff[istop:iend], 'xm')
+            plt.legend(('Target','Intercept'), loc='upper left')
+        else:
+            plt.plot(Thoff[istop:iend], Tvoff[istop:iend], 'oc')
+            plt.legend(('Target','Missed'), loc='upper left')
+        
+        ## Figure 12 - 3D missile/target engagement trajectories plot.
         figures.append(plt.figure(11, figsize=(8,8), dpi=80))
         ax = figures[-1].add_subplot(projection='3d')
         text = "3D Plot of missile/target engagement ({0}, N={1}, At={2})"\
