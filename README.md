@@ -90,7 +90,7 @@ In each case the SAM, with constant velocity of 450 meters/second, was launched 
 
 ## References ##
 
-Although references [3] through [5] were not consulted during development of the original Mathcad 3-DOF kinematic ideal proportional navigation missile model from which this Python program was derived, they were beneficial for implementation of "True", "ZEM" and "Augmented Pure" proportional navigation formulations, and as validation sources. Reference [6] was consulted to verify original Mathcad expressions for inertial line of sight rotation rate calculations, and reformulations to use standard guidance definition for "closing velocity" as "-dRlos/dt".
+Although references [3] through [5] were not consulted during development of the original Mathcad 3-DOF kinematic ideal proportional navigation missile model from which this Python program was derived, they were beneficial for implementation of "True", "ZEM" and "Augmented" proportional navigation formulations, and as validation sources. Reference [6] was consulted to verify original Mathcad expressions for inertial line of sight rotation rate calculations, and reformulations to use standard guidance definition for "closing velocity" as "-dRlos/dt".
 
 \[1] Paul Zarchan and A. Richard Seebass (Editor-in-Chief), "Tactical and Strategic Missile Guidance (Progress in Astronautics and Aeronautics, Vol 124)", American Institute of Aeronautics and Astronautics, Washington, D.C.,1990.
 

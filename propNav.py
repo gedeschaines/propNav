@@ -9,7 +9,7 @@
 # Date: 25 Oct 2023
 # Prog: Proportional navigation guidance missile flyout model
 # Desc: Application of selectable proportional navigation guidance laws
-#       (True, Pure, ZEM, or Augmented Pure) for missile engagement
+#       (True, Pure, ZEM, or Augmented PN) for missile engagement
 #       of a target. 3-DOF point mass kinematic model for missile and
 #       target. Ideal missile control; no lag with 100% effective, but 
 #       bounded commanded acceleration, and perfect command response.
@@ -111,22 +111,29 @@ Uzi = np.array([0.0, 0.0, 1.0])
 PN_TRUE = 1  # Default
 PN_PURE = 2
 PN_ZEM  = 3
-PN_AUGP = 4
-PN_LAWS = {PN_TRUE:'True',  PN_PURE:'Pure', PN_ZEM:'ZEM', PN_AUGP:'AugP'}
-PNAV    = PN_PURE
+PN_APN  = 4
+PN_LAWS = {PN_TRUE:'True',  PN_PURE:'Pure', PN_ZEM:'ZEM', PN_APN:'APN'}
+PNAV    = PN_TRUE
 
-Nm = 4    # proportional navigation constant
-Nt = 5.0  # target turning acceleration (g's)
+Nm = 3    # proportional navigation constant
+Nt = 3.0  # target turning acceleration (g's)
 
 # Set missile type and acceleration maximum.
 
 SAM = 1  # For engagements described in Caveats section of propNav README.
 AAM = 2  # For engagements presented in Section 3, Modules 3 & 4 of ref [4].
-MSL = SAM
+MSL = AAM
 
 Gmmax = {SAM:8, AAM:30}  # maximum missile acceleration (g's)
 Ammax = Gmmax[MSL]*g     # maximum missile acceleration (meters/s/s)
 
+# Set minimum miss distance (meters).
+
+if MSL == SAM:
+    MinMissDist = 3.0
+else :
+    MinMissDist = 6.0
+    
 # Missile lead azimuth and elevation angles in degrees. 
 # Set to None for calculation of lead angles based on
 # estimation of time-to-intercept of a non-maneuvering
@@ -143,10 +150,19 @@ if MSL == SAM:
     Pm0   = np.array([    0.0,    0.0,    2.0])
     magVm = 450.0
 else:
-    Pt0   = np.array([12192.0, 6096.0, 3048.0])
-    Vt0   = np.array([ -304.8,    0.0,    0.0])
-    Pm0   = np.array([    0.0, 6096.0, 3048.0])
-    magVm = 914.4
+    if (int(Nt) == 3) and ((PNAV == PN_APN) or (PNAV == PN_TRUE)):
+        # for Section 2, Module 3 of ref [5]
+        Pt0   = np.array([ 9144.0, 4572.0,    0.0])
+        Vt0   = np.array([ -304.8,    0.0,    0.0])
+        Pm0   = np.array([    0.0, 4572.0,    0.0])
+        magVm = 457.2
+    else:
+        # For Section 3, Modules 3 & 4 of ref [4]
+        Pt0   = np.array([12192.0, 6096.0, 3048.0])
+        Vt0   = np.array([ -304.8,    0.0,    0.0])
+        Pm0   = np.array([    0.0, 6096.0, 3048.0])
+        magVm = 914.4
+
     
 # Define target turning/climbing rotation axis unit vector.
 
@@ -167,7 +183,10 @@ T_STEP = 0.001
 if MSL == SAM:
     T_STOP =  5.5
 else:
-    T_STOP = 12.0
+    if (int(Nt) == 3) and ((PNAV == PN_APN) or (PNAV == PN_TRUE)):
+        T_STOP = 14.5
+    else: 
+        T_STOP = 12.5
     
 # Set processing output control flags.
 
@@ -277,7 +296,7 @@ def Wlos(Vtm, Rlos, Ulos):
 def Amslc(Rlos, Vt, At, Vm, N):
     """
     This routine is the application of selected proportional
-    navigation method - True, Pure, FEM or AugP.
+    navigation method - True, Pure, FEM or APN.
     
     Globals
     -------
@@ -305,8 +324,10 @@ def Amslc(Rlos, Vt, At, Vm, N):
     """
     Ulos = Uvec(Rlos)
     Vtm  = Vrel(Vt, Vm)
-    if PNAV == PN_AUGP:
-        Acmd = N*(np.cross(Wlos(Vtm, Rlos, Ulos), Vm) + At/2.0)
+    if PNAV == PN_APN:
+        Vc   = la.norm(Vclose(Vtm, Ulos))
+        Acmd = N*(Vc*np.cross(Wlos(Vtm, Rlos, Ulos), Ulos) + At/2.0)
+        Acmd = Acmd - np.dot(Acmd, Uvec(Vm))*Uvec(Vm)  # no thrust control
     elif PNAV == PN_ZEM:
         tgo  = timeToGo(Rlos, Vt, Vm)
         Acmd = N*ZEMn(Rlos, Vtm, tgo)/(tgo**2)
@@ -467,7 +488,7 @@ def dotS(n, S):
 
 def Stop(S):
     Vt, Pt, Vm, Pm = getS(S)
-    if np.dot(Prel(Vm,Vt), Uvec(Prel(Pt, Pm))) < 0.0:
+    if (S[0] >= T_STOP) or (np.dot(Prel(Vm,Vt), Uvec(Prel(Pt, Pm))) < 0.0):
         return True
     return False
 
@@ -749,7 +770,10 @@ if __name__ == "__main__":
     
     if num_trys == max_trys:
         
-        print("\n*** Non-convergent Intercept ***")
+        if t < tStop:
+            print("\n*** Non-convergent Intercept ***")
+        else:
+            print("\n*** Insufficient Simulation Time ***")
         
         INTERCEPT = False
         
@@ -767,6 +791,11 @@ if __name__ == "__main__":
     
     istop = i
     iend  = istop + 1
+    
+    if (num_trys == max_trys) or (Dcls[istop] > MinMissDist):
+        INTERCEPT = False
+    else:
+        INTERCEPT = True
     
     if PLOT_DATA or PRINT_TXYZ :
         
@@ -796,12 +825,14 @@ if __name__ == "__main__":
         plt.ylim([-1.0, Dcls[istop-3]])
         plt.grid()
         plt.plot(Time[istop-3:iend], Dcls[istop-3:iend], 'o:k')
+        plt.plot(np.array([Time[istop-3], Time[istop]]), 
+                 np.array([MinMissDist, MinMissDist]), 'o-c')
         if INTERCEPT:
             plt.plot(Time[istop], Dcls[istop], 'X:m')
-            plt.legend(['Distance','Intecept'])
+            plt.legend(['Distance','MinMissDist','Intercept'])
         else:
             plt.plot(Time[istop], Dcls[istop], 'o:c')
-            plt.legend(['Distance','Missed'])
+            plt.legend(['Distance','MinMissDist','Missed'])
             
         figures.append(plt.figure(2, figsize=(6,6), dpi=80))
         text = "XY plan view of intercept ({0}, N={1}, At={2})"\
@@ -828,7 +859,14 @@ if __name__ == "__main__":
                  np.array([Pmy[istop-2],Pty[istop-2]]), '.:k',
                  np.array([Pmx[istop-1],Ptx[istop-1]]),
                  np.array([Pmy[istop-1],Pty[istop-1]]), '.:k')
-        plt.legend(('Target','Missile','LOS','LOS'), loc='upper left')
+        if INTERCEPT:
+            plt.plot(np.array([Pmx[istop],Ptx[istop]]),
+                     np.array([Pmy[istop],Pty[istop]]), '.:m')
+            plt.legend(('Target','Missile','LOS',' ',' ','Intercept'), loc='upper left')
+        else:
+            plt.plot(np.array([Pmx[istop],Ptx[istop]]),
+                     np.array([Pmy[istop],Pty[istop]]), '.:c')
+            plt.legend(('Target','Missile','LOS',' ', ' ','Missed'), loc='upper left')
         
         figures.append(plt.figure(3, figsize=(6,6), dpi=80))
         text = "XZ profile view of intercept ({0}, N={1}, At={2})"\
@@ -855,7 +893,14 @@ if __name__ == "__main__":
                  np.array([Pmz[istop-2],Ptz[istop-2]]), '.:k',
                  np.array([Pmx[istop-1],Ptx[istop-1]]),
                  np.array([Pmz[istop-1],Ptz[istop-1]]), '.:k')
-        plt.legend(('Target','Missile','LOS','LOS'), loc='upper left')
+        if INTERCEPT:
+            plt.plot(np.array([Pmx[istop],Ptx[istop]]),
+                     np.array([Pmz[istop],Ptz[istop]]), '.:m')
+            plt.legend(('Target','Missile','LOS',' ',' ','Intercept'), loc='upper left')
+        else:
+            plt.plot(np.array([Pmx[istop],Ptx[istop]]),
+                     np.array([Pmz[istop],Ptz[istop]]), '.:c')
+            plt.legend(('Target','Missile','LOS',' ',' ','Missed'), loc='upper left')
         
         figures.append(plt.figure(4, figsize=(6,6), dpi=80))
         text = "XY plan view of missile/target engagement ({0}, N={1}, At={2})"\
