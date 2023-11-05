@@ -110,10 +110,12 @@ Uzi = np.array([0.0, 0.0, 1.0])
 
 PN_TRUE = 1  # Default
 PN_PURE = 2
-PN_ZEM  = 3
-PN_APN  = 4
-PN_LAWS = {PN_TRUE:'True',  PN_PURE:'Pure', PN_ZEM:'ZEM', PN_APN:'APN'}
-PNAV    = PN_TRUE
+PN_ZEM  = 3  # Zero Error Miss
+PN_ATPN = 4  # Augmented True Proportional Navigation
+PN_APPN = 5  # Augmented Pure Proportional Navigation
+PN_LAWS = {PN_TRUE:'True', PN_PURE:'Pure', PN_ZEM:'ZEM', 
+           PN_ATPN:'ATPN', PN_APPN:'APPN'}
+PNAV    = PN_APPN
 
 Nm = 3    # proportional navigation constant
 Nt = 3.0  # target turning acceleration (g's)
@@ -121,7 +123,8 @@ Nt = 3.0  # target turning acceleration (g's)
 # Set missile type and acceleration maximum.
 
 SAM = 1  # For engagements described in Caveats section of propNav README.
-AAM = 2  # For engagements presented in Section 3, Modules 3 & 4 of ref [4].
+AAM = 2  # For engagements presented in Section 3, Modules 3 & 4 of ref [4]
+         # and in Section 4, Module 4 of ref [5].
 MSL = AAM
 
 Gmmax = {SAM:8, AAM:30}  # maximum missile acceleration (g's)
@@ -150,7 +153,8 @@ if MSL == SAM:
     Pm0   = np.array([    0.0,    0.0,    2.0])
     magVm = 450.0
 else:
-    if (int(Nt) == 3) and ((PNAV == PN_APN) or (PNAV == PN_TRUE)):
+    if (int(Nt) == 3) and \
+       ((PNAV == PN_TRUE) or (PNAV == PN_ATPN) or (PNAV == PN_APPN)):
         # for Section 2, Module 3 of ref [5]
         Pt0   = np.array([ 9144.0, 4572.0,    0.0])
         Vt0   = np.array([ -304.8,    0.0,    0.0])
@@ -183,7 +187,8 @@ T_STEP = 0.001
 if MSL == SAM:
     T_STOP =  5.5
 else:
-    if (int(Nt) == 3) and ((PNAV == PN_APN) or (PNAV == PN_TRUE)):
+    if (int(Nt) == 3) and \
+        ((PNAV == PN_TRUE) or (PNAV == PN_ATPN) or (PNAV == PN_APPN)):
         T_STOP = 14.5
     else: 
         T_STOP = 12.5
@@ -302,6 +307,8 @@ def Amslc(Rlos, Vt, At, Vm, N):
     -------
     PNAV : integer constant 
         Proportional Navigation law selected identifier
+    RPD : float constant
+        Radians per degree
         
     Parameters
     ----------
@@ -324,10 +331,29 @@ def Amslc(Rlos, Vt, At, Vm, N):
     """
     Ulos = Uvec(Rlos)
     Vtm  = Vrel(Vt, Vm)
-    if PNAV == PN_APN:
-        Vc   = la.norm(Vclose(Vtm, Ulos))
-        Acmd = N*(Vc*np.cross(Wlos(Vtm, Rlos, Ulos), Ulos) + At/2.0)
-        Acmd = Acmd - np.dot(Acmd, Uvec(Vm))*Uvec(Vm)  # no thrust control
+    if PNAV == PN_APPN or PNAV == PN_ATPN:
+        maz, mel = az_el_of_V(Vm)
+        M = Mrot(maz*RPD, mel*RPD, 0.0)
+        # See derivation of equation (3.8) in ref [6].
+        #
+        if PNAV == PN_APPN:
+            # 3.1.1 Version 1 (PN-1) Pure PN equation (3.2)
+            PN_1i = N*np.cross(Wlos(Vtm, Rlos, Ulos), Vm)
+            PN_1b = np.matmul(M, PN_1i)  # eq. (3.3)
+            PN_1b[0] = 0.0               # eq. (3.4)
+            PNG = PN_1b
+        if PNAV == PN_ATPN:
+            # 3.1.2 Version 2 (PN-2) True PN equation (3.5)
+            Vc    = la.norm(Vclose(Vtm, Ulos))
+            PN_2i = N*Vc*np.cross(Wlos(Vtm, Rlos, Ulos), Ulos)
+            PN_2b = np.matmul(M, PN_2i)  # eq. (3.6)
+            PN_2b[0] = 0.0               # eq. (3.7)
+            PNG = PN_2b  # Section 2, Module 3 of ref [5].
+        #
+        # 3.2 Augmented PN (APN) Guidance
+        Acmdb = PNG + np.matmul(M, (N/2.0)*At)  # eq. (3.8)
+        Acmdb[0] = 0.0  # no thrust control
+        Acmd = np.matmul(M.transpose(), Acmdb)
     elif PNAV == PN_ZEM:
         tgo  = timeToGo(Rlos, Vt, Vm)
         Acmd = N*ZEMn(Rlos, Vtm, tgo)/(tgo**2)
