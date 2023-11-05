@@ -115,7 +115,7 @@ PN_ATPN = 4  # Augmented True Proportional Navigation
 PN_APPN = 5  # Augmented Pure Proportional Navigation
 PN_LAWS = {PN_TRUE:'True', PN_PURE:'Pure', PN_ZEM:'ZEM', 
            PN_ATPN:'ATPN', PN_APPN:'APPN'}
-PNAV    = PN_TRUE
+PNAV    = PN_PURE
 
 Nm = 4    # proportional navigation constant
 Nt = 3.0  # target turning acceleration (g's)
@@ -157,7 +157,7 @@ if MSL == SAM:
     Pm0   = np.array([    0.0,    0.0,    2.0])
     magVm = 450.0
 else:
-    if ((int(Nt) == 3) and (int(Nm) == 3)) \
+    if ((int(Nt) == 3) and (int(Nm) == 3)) and\
        ((PNAV == PN_TRUE) or (PNAV == PN_ATPN) or (PNAV == PN_APPN)):
         # for Section 2, Module 3 of ref [5].
         Pt0   = np.array([ 9144.0, 4572.0,    0.0])
@@ -190,7 +190,7 @@ T_STEP = 0.001
 if MSL == SAM:
     T_STOP =  5.5
 else:
-    if ((int(Nt) == 3) and (int(Nm) == 3)) \
+    if ((int(Nt) == 3) and (int(Nm) == 3)) and \
         ((PNAV == PN_TRUE) or (PNAV == PN_ATPN) or (PNAV == PN_APPN)):
         # For Section 2, Module 3 of ref [5].
         T_STOP = 14.5
