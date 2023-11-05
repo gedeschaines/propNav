@@ -123,8 +123,8 @@ Nt = 3.0  # target turning acceleration (g's)
 # Set missile type and acceleration maximum.
 
 SAM = 1  # For engagements described in Caveats section of propNav README.
-AAM = 2  # For engagements presented in Section 3, Modules 3 & 4 of ref [4]
-         # and in Section 4, Module 4 of ref [5].
+AAM = 2  # For engagements presented in Section 3, Modules 3 & 4, Section 4,
+         # Module 4 of ref [4], and Section 2, Module 3 of ref [5].
 MSL = AAM
 
 Gmmax = {SAM:8, AAM:30}  # maximum missile acceleration (g's)
