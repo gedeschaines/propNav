@@ -115,7 +115,7 @@ PN_ATPN = 4  # Augmented True Proportional Navigation
 PN_APPN = 5  # Augmented Pure Proportional Navigation
 PN_LAWS = {PN_TRUE:'True', PN_PURE:'Pure', PN_ZEM:'ZEM', 
            PN_ATPN:'ATPN', PN_APPN:'APPN'}
-PNAV    = PN_APPN
+PNAV    = PN_ATPN
 
 Nm = 3    # proportional navigation constant
 Nt = 3.0  # target turning acceleration (g's)
@@ -167,7 +167,6 @@ else:
         Pm0   = np.array([    0.0, 6096.0, 3048.0])
         magVm = 914.4
 
-    
 # Define target turning/climbing rotation axis unit vector.
 
 if MSL == SAM:
@@ -219,16 +218,22 @@ def Vrel(Vt, Vm):
 def Mrot(psi, tht, phi):
     """
     Euler angle (yaw,pitch,roll) rotation transformation matrix
-    for Cartesian (X,Y,Z) coordinates from pg 335 of ref [2].
+    for inertial frame Cartesian coordinates (Xi,Yi,Zi) to body
+    frame coordinates (xb,yb,zb) derived from equation (7-166)
+    on pg 335 of ref [2] (same as that presented in Figure 3 on
+    pg 6 of ref [6]).
+    
+    Use as:  [xb, yb, zb] = Numpy.matmul(M, [Xi, Yi, Zi])
     """
     cpsi = cos(psi)
     spsi = sin(psi)
-    ctht = cos(-tht)
-    stht = sin(-tht)
+    ctht = cos(-tht)  # account for yaw = -azimuth
+    stht = sin(-tht)  # account for yaw = -azimuth
     cphi = cos(phi)
     sphi = sin(phi)
     
-    M      = np.zeros([3,3])
+    M = np.zeros([3,3])
+    
     M[0,0] =  cpsi*ctht
     M[0,1] =  spsi*ctht
     M[0,2] = -stht
@@ -238,7 +243,12 @@ def Mrot(psi, tht, phi):
     M[2,0] =  spsi*sphi + cpsi*stht*cphi
     M[2,1] = -cpsi*sphi + spsi*stht*cphi
     M[2,2] =  ctht*cphi  
-    return M
+    
+    # Account for +yb = -Yi and +zb = -Zi
+    Mbi = np.matmul(np.array([[1.0,  0.0,  0.0],
+                              [0.0, -1.0,  0.0],
+                              [0.0,  0.0, -1.0]]), M)
+    return Mbi
 
 def leadAngle(Pt, Vt, Pm, magVm):
     magVt = la.norm(Vt)
@@ -332,28 +342,29 @@ def Amslc(Rlos, Vt, At, Vm, N):
     Ulos = Uvec(Rlos)
     Vtm  = Vrel(Vt, Vm)
     if PNAV == PN_APPN or PNAV == PN_ATPN:
+        # Create inertial to missile body rotation matrix
         maz, mel = az_el_of_V(Vm)
-        M = Mrot(maz*RPD, mel*RPD, 0.0)
+        Mbi = Mrot(maz*RPD, mel*RPD, 0.0)
         # See derivation of equation (3.8) in ref [6].
         #
         if PNAV == PN_APPN:
             # 3.1.1 Version 1 (PN-1) Pure PN equation (3.2)
             PN_1i = N*np.cross(Wlos(Vtm, Rlos, Ulos), Vm)
-            PN_1b = np.matmul(M, PN_1i)  # eq. (3.3)
-            PN_1b[0] = 0.0               # eq. (3.4)
+            PN_1b = np.matmul(Mbi, PN_1i)  # eq. (3.3)
+            PN_1b[0] = 0.0                 # eq. (3.4)
             PNG = PN_1b
         if PNAV == PN_ATPN:
             # 3.1.2 Version 2 (PN-2) True PN equation (3.5)
             Vc    = la.norm(Vclose(Vtm, Ulos))
             PN_2i = N*Vc*np.cross(Wlos(Vtm, Rlos, Ulos), Ulos)
-            PN_2b = np.matmul(M, PN_2i)  # eq. (3.6)
-            PN_2b[0] = 0.0               # eq. (3.7)
+            PN_2b = np.matmul(Mbi, PN_2i)  # eq. (3.6)
+            PN_2b[0] = 0.0                 # eq. (3.7)
             PNG = PN_2b  # Section 2, Module 3 of ref [5].
         #
         # 3.2 Augmented PN (APN) Guidance
-        Acmdb = PNG + np.matmul(M, (N/2.0)*At)  # eq. (3.8)
+        Acmdb = PNG + np.matmul(Mbi, (N/2.0)*At)  # eq. (3.8)
         Acmdb[0] = 0.0  # no thrust control
-        Acmd = np.matmul(M.transpose(), Acmdb)
+        Acmd = np.matmul(Mbi.transpose(), Acmdb)
     elif PNAV == PN_ZEM:
         tgo  = timeToGo(Rlos, Vt, Vm)
         Acmd = N*ZEMn(Rlos, Vtm, tgo)/(tgo**2)
@@ -588,9 +599,9 @@ def collectData(i, t, S):
     # Get current target offset alpha and beta angles in
     # missile body frame.
     
-    M    = Mrot(maz*RPD, mel*RPD, 0.0)
+    Mbi  = Mrot(maz*RPD, mel*RPD, 0.0)
     Rlos = Prel(Pt, Pm)
-    Rtmb = np.matmul(M, Rlos)
+    Rtmb = np.matmul(Mbi, Rlos)
     alpha, beta = az_el_of_V(Rtmb)
     
     # Get current target and missile state derivatives.
@@ -603,15 +614,15 @@ def collectData(i, t, S):
     Ulos  = Uvec(Rlos)
     tgo   = timeToGo(Rlos, Vt, Vm)
     Wlosi = Wlos(Vrel(Vt,Vm), Rlos, Ulos)
-    Wlosb = np.matmul(M, Wlosi)
+    Wlosb = np.matmul(Mbi, Wlosi)
     if abs(Wlosb[2]) >= abs(Wlosb[1]):
         # predominantly yaw maneuver
-        Uzb  = np.matmul(M, -Uzi)
-        wsgn = np.sign(np.dot(Wlosb, Uzb))
+        Uzb  = np.matmul(Mbi, Uzi)
+        wsgn = -np.sign(np.dot(Wlosb, Uzb))
     else:
         # predominantly pitch maneuver
-        Uyb  = np.matmul(M, -Uyi)
-        wsgn = np.sign(np.dot(Wlosb, Uyb))
+        Uyb  = np.matmul(Mbi, Uyi)
+        wsgn = np.sign(np.dot(Wlosb, -Uyb))
     losr  = wsgn*la.norm(Wlosb)
     vcls  = la.norm(Vclose(Vrel(Vt,Vm), Ulos))
     dcls  = Dclose(S)
