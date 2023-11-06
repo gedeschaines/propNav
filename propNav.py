@@ -229,6 +229,9 @@ def Mrot(psi, tht, phi):
     on pg 335 of ref [2] (same as that presented in Figure 3 on
     pg 6 of ref [6]).
     
+    Note:  Yaw, pitch and roll are expected to be in radians,
+           NOT degrees!
+    
     Use as:  [xb, yb, zb] = Numpy.matmul(M, [Xi, Yi, Zi])
     """
     cpsi = cos(psi)
@@ -328,20 +331,20 @@ def Amslc(Rlos, Vt, At, Vm, N):
         
     Parameters
     ----------
-    Rlos : 3-Vector
+    Rlos : float 3-vector
         Range along LOS from missile to target.
-    Vt : 3-vector
-        Velocity of target.
-    At : 3-vector
-        Acceleration of target.
-    Vm : 3-vector
-        Velocity of missile.
-    N : float constant
+    Vt :  float 3-vector
+        Velocity (inertial) of target.
+    At : float 3-vector
+        Acceleration (inertial) of target.
+    Vm : float 3-vector
+        Velocity (inertial) of missile.
+    N : float
         Proportional navigation constant (or gain).
 
     Returns
     -------
-    Acmd : 3-Vector
+    Acmd : float 3-Vector
         Acceleration commanded.
         
     """
@@ -384,12 +387,54 @@ def Amslc(Rlos, Vt, At, Vm, N):
     return Acmd
 
 def Amsla(Amcmd, Ammax):
+    """
+    Applies Ammax bound to given commanded missile acceleration.
+
+    Parameters
+    ----------
+    Amcmd : float 3-vector
+        Missile inertial linear acceleration commanded.
+    Ammax : float constant
+        Maximum missile linear acceleration.
+
+    Returns
+    -------
+    float 3-Vector
+        Missile inertial acceleration achieved (actual).
+
+    """
     if la.norm(Amcmd) > Ammax:
         return np.dot(Ammax, Uvec(Amcmd))
     return Amcmd
 
 def Atgt(UWt, Vt, n):
-    # Note: g is global.
+    """
+    This routine calculates target inertial linear acceleration
+    for given inertial angular velocity direction unit vector,
+    inertial linear velocity, and turning g's.
+    
+    Globals
+    -------
+    g : float
+        gravitional acceleration magnitude
+
+    Parameters
+    ----------
+    UWt : float 3-vector
+        Target angular velocity direction unit vector (i.e.,
+        direction frame rotation axis points in inertial space).
+    Vt : float 3-vector
+        Target inertial velocity.
+    n : float 
+        Target turning acceleration (normal to UWt) magnitude 
+        in g's.
+
+    Returns
+    -------
+    At : float 3-vector
+        Target inertial acceleration.
+
+    """
     if n != 0.0:
         magVt = la.norm(Vt)
         theta = pitchAngle(Vt)
@@ -498,7 +543,7 @@ def dotS2(dS, At, Vt, Amcmd, Vm):
     return dS
 
 def dotS1(dS, Ptm, Vt, Vm):
-    # Note: UWt is global
+    # Note: UWt, Nt and Nm are global
     At = Atgt(UWt ,Vt, Nt)
     dS = dotS2(dS, At, Vt, Amslc(Ptm, Vt, At, Vm, Nm), Vm)
     return dS
