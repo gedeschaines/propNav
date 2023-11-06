@@ -1028,12 +1028,8 @@ if __name__ == "__main__":
         plt.xlabel('Time (sec)')
         plt.ylabel('Acceleration (g)')
         plt.xlim([0.0, T_STOP])
-        if MSL == SAM:
-            plt.ylim([floor(min(Acmg[0:istop]))-0.2, 
-                       ceil(max(Acmg[0:istop]))+0.2])
-        else:
-            plt.ylim([floor(min(Acmg[0:istop]))-0.2, 
-                       ceil(max(Acmg[0:istop]))+0.2])
+        plt.ylim([floor((min(Acmg[0:istop])-Gmmax[MSL]/2)*10.0)/10.0,
+                   ceil((max(Acmg[0:istop])+Gmmax[MSL]/2)*10.0)/10.0])
         plt.grid()
         plt.plot(Time[0:istop], Acmg[0:istop], ',-k')
         
@@ -1046,8 +1042,8 @@ if __name__ == "__main__":
         plt.xlabel('Time (sec)')
         plt.ylabel('LOS rate (deg/sec)')
         plt.xlim([0.0, T_STOP])
-        plt.ylim([floor(min(LOSd[0:istop]))-0.2, 
-                   ceil(max(LOSd[0:istop]))+0.2])
+        plt.ylim([max([floor(min(LOSd[0:istop]))-0.2,-2*pi]), 
+                  min([ ceil(max(LOSd[0:istop]))+0.2, 2*pi])])
         plt.grid()
         plt.plot(Time[0:istop], LOSd[0:istop], '-k')
         
