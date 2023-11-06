@@ -118,7 +118,7 @@ PN_LAWS = {PN_TRUE:'True', PN_PURE:'Pure', PN_ZEM:'ZEM',
 PNAV    = PN_PURE
 
 Nm = 4    # proportional navigation constant
-Nt = 3.0  # target turning acceleration (g's)
+Nt = 6.0  # target turning acceleration (g's)
 
 # Set missile type and acceleration maximum.
 
@@ -879,7 +879,7 @@ if __name__ == "__main__":
         plt.grid()
         plt.plot(Time[istop-3:iend], Dcls[istop-3:iend], 'o:k')
         plt.plot(np.array([Time[istop-3], Time[istop]]), 
-                 np.array([MinMissDist, MinMissDist]), 'o-c')
+                 np.array([MinMissDist, MinMissDist]), '-c')
         if INTERCEPT:
             plt.plot(Time[istop], Dcls[istop], 'X:m')
             plt.legend(['Distance','MinMissDist','Intercept'])
