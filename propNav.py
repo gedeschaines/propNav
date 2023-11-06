@@ -1087,8 +1087,8 @@ if __name__ == "__main__":
         plt.xlabel('Time (sec)')
         plt.ylabel('LOS rate (deg/sec)')
         plt.xlim([0.0, T_STOP])
-        plt.ylim([max([floor(min(LOSd[0:istop]))-0.2,-2*pi]), 
-                  min([ ceil(max(LOSd[0:istop]))+0.2, 2*pi])])
+        plt.ylim([max([floor(min(LOSd[0:istop]))-0.2,-6]), 
+                  min([ ceil(max(LOSd[0:istop]))+0.2, 6])])
         plt.grid()
         plt.plot(Time[0:istop], LOSd[0:istop], '-k')
         
