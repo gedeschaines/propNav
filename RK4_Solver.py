@@ -35,7 +35,7 @@ class RK4_Solver:
     def __init__(self, h, n):
         """
         Instantation initializer, where:
-            h = integration step size\f
+            h = integration step size
             n = number of state variables
         """
         self.S      = np.zeros(n)  # temp storage for states
