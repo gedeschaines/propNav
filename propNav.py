@@ -157,7 +157,7 @@ if MSL == SAM:
     Pm0   = np.array([    0.0,    0.0,    2.0])
     magVm = 450.0
 else:
-    if ((int(Nt) == 3) and (int(Nm) == 3)) and\
+    if ((int(Nt) == 3) and (int(Nm) == 3)) and \
        ((PNAV == PN_TRUE) or (PNAV == PN_ATPN) or (PNAV == PN_APPN)):
         # for Section 2, Module 3 of ref [5].
         Pt0   = np.array([ 9144.0, 4572.0,    0.0])
@@ -739,7 +739,7 @@ if __name__ == "__main__":
 
     Vm0 = setVm(magVm, maz*RPD, mel*RPD)
     
-    print("Applying %s proportional navigation law." % (PN_LAWS[PNAV]))
+    print("Applying %s proportional navigation guidance law." % (PN_LAWS[PNAV]))
     
     if PRINT_DATA:
         print("Target initial position:  [%9.2f, %9.2f, %9.2f]" % 
@@ -1079,8 +1079,8 @@ if __name__ == "__main__":
         plt.title(text)
         plt.xlabel('Horizontal Offset (Sine)')
         plt.ylabel('Vertical Offset (Sine)')
-        plt.xlim([-1.0,  1.0])
-        plt.ylim([ 1.0, -1.0])
+        plt.xlim([-0.5,  0.5])  # +/- 30 degrees
+        plt.ylim([ 0.5, -0.5])  # +/- 30 degrees
         plt.grid()
         plt.plot(Thoff[0:iend], Tvoff[0:iend], ',:r')
         if INTERCEPT:
