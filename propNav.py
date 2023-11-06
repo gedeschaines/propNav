@@ -923,7 +923,7 @@ if __name__ == "__main__":
             plt.legend(('Target','Missile','LOS',' ', ' ','Missed'), loc='upper left')
         
         ## Figure 3 - XZ profile view of intercept geometry at tStop.
-        figures.append(plt.figure(3, figsize=(6,6), dpi=80))
+        figures.append(plt.figure(3, figsize=(6,3), dpi=80))
         text = "XZ profile view of intercept ({0}, N={1}, At={2})"\
             .format(PN_LAWS[PNAV], int(Nm), int(Nt))
         plt.title(text)
@@ -1162,7 +1162,7 @@ if __name__ == "__main__":
         ax.add_line(line3)
         ax.add_line(line4)
         ax.add_line(line5)
-        ax.legend()
+        ax.legend(loc='upper right')
         ax.view_init(elev=20.0, azim=220.0)
         
         def move_fig(fig):
@@ -1170,7 +1170,7 @@ if __name__ == "__main__":
             Moves given figure plot window based on figure's number.
             """
             fign = fig.number
-            x, y = 80*(fign+1), 40*(fign+1)
+            x, y = 60*(fign+1), 40*(fign+1)
             backend = mpl.get_backend().upper()
             if backend[0:2] == 'WX':
                 fig.canvas.manager.window.SetPosition((x,y))
