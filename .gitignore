@@ -1,5 +1,7 @@
 __pycache__/
 tmp/
+out/TXYZ.OUT.*
+!out/TXYZ.OUT.124*
 .spyproject
 *.pyc
 *\~
