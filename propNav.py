@@ -1005,7 +1005,9 @@ if __name__ == "__main__":
                      np.array([Pmz[istop],Ptz[istop]]), 'oc')
             plt.legend(('Target','Missile','Missed'), loc='upper left')
         
-        ## Figure 6 - Missile velocity magnitude vs time of flight.
+        ## Figure 6 - Missile velocity magnitude vs time of flight
+        ##            up to point just before flight termination.
+        ##            Note; This is a constant velocity missile.
         figures.append(plt.figure(6, figsize=(6,3), dpi=80))
         text = "Missile velocity magnitude profile ({0}, N={1}, At={2})"\
             .format(PN_LAWS[PNAV], int(Nm), int(Nt))
@@ -1017,7 +1019,8 @@ if __name__ == "__main__":
         plt.grid()
         plt.plot(Time[0:istop], Velm[0:istop], '-k')
         
-        ## Figure 7 - Missile acceleration vs time of flight.
+        ## Figure 7 - Missile acceleration vs time of flight up
+        ##            to point just before flight termination.
         figures.append(plt.figure(7, figsize=(6,3), dpi=80))
         text = "Missile acceleration profile ({0}, N={1}, At={2})"\
             .format(PN_LAWS[PNAV], int(Nm), int(Nt))
@@ -1034,7 +1037,8 @@ if __name__ == "__main__":
         plt.grid()
         plt.plot(Time[0:istop], Acmg[0:istop], ',-k')
         
-        ## Figure 8 - Line-of-Sight rate vs time of flight.
+        ## Figure 8 - Line-of-Sight rate vs time of flight up
+        ##            to point just before flight termination.
         figures.append(plt.figure(8, figsize=(6,3), dpi=80))
         text = "LOS rate profile ({0}, N={1}, At={2})".\
             format(PN_LAWS[PNAV], int(Nm), int(Nt))
@@ -1047,7 +1051,8 @@ if __name__ == "__main__":
         plt.grid()
         plt.plot(Time[0:istop], LOSd[0:istop], '-k')
         
-        ## Figure 9 - Closing velocity vs time of flight.
+        ## Figure 9 - Closing velocity vs time of flight up
+        ##            to point just before flight termination.
         figures.append(plt.figure(9, figsize=(6,3), dpi=80))
         text = "Closing velocity profile ({0}, N={1}, At={2})"\
             .format(PN_LAWS[PNAV], int(Nm), int(Nt))
@@ -1060,7 +1065,8 @@ if __name__ == "__main__":
         plt.grid()
         plt.plot(Time[0:istop], VELc[0:istop], '-k')
         
-        ## Figure 10 - Zero Effort Miss distance vs time of flight.
+        ## Figure 10 - Zero Effort Miss distance vs time of flight
+        ##             up to point just before flight termination.
         figures.append(plt.figure(10, figsize=(6,3), dpi=80))
         text = "Zero Effort Miss distance profile ({0}, N={1}, At={2})"\
             .format(PN_LAWS[PNAV], int(Nm), int(Nt))
