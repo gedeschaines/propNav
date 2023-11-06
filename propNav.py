@@ -118,7 +118,7 @@ PN_LAWS = {PN_TRUE:'True', PN_PURE:'Pure', PN_ZEM:'ZEM',
 PNAV    = PN_PURE
 
 Nm = 4    # proportional navigation constant
-Nt = 6.0  # target turning acceleration (g's)
+Nt = 3.0  # target turning acceleration (g's)
 
 # Set missile type and acceleration maximum.
 
