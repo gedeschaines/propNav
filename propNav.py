@@ -1291,7 +1291,7 @@ if __name__ == "__main__":
                                     UVt[0,1,0:iend]], axis=0))*DPR
         PHIt = np.zeros([iend])
         for i in range(0, iend):
-            PHIt[i] = -bankAngle(Ate[0,:,i],Vte[0,:,i])
+            PHIt[i] = bankAngle(Ate[0,:,i],Vte[0,:,i])
         PHItd = np.fmod(PHIt[0:iend], twopi)*DPR
         
         # TXYZ output file record formats.
