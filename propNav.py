@@ -74,15 +74,14 @@ from math import ceil, floor, cos, sin, acos, asin, atan, atan2, pi
 
 try:
     import numpy             as np
-    import scipy.linalg      as la
+    import numpy.linalg      as la
     import matplotlib        as mpl
     import matplotlib.pyplot as plt
 #   import matplotlib.animation as animation
 #   from matplotlib.lines import Line2D
     from mpl_toolkits.mplot3d.art3d import Line3D
 except ImportError:
-    print("* Error: NumPy, SciPy and Matplotlib packages required.")
-    print("         Suggest installing the SciPy stack.")
+    print("* Error: NumPy and Matplotlib packages required.")
     sys.exit()
 
 try:

@@ -7,7 +7,7 @@ ____________
   Animated GIF from threeD rendering for TXYZ.OUT.1243 
  </p>
 
-A 3-DOF point mass kinematic model of an ideal proportional navigation guidance missile written entirely in Python 3; dependent upon only three readily available modules - Numpy, SciPy and Matplotlib.
+A 3-DOF point mass kinematic model of an ideal proportional navigation guidance missile written entirely in Python 3; dependent upon only two readily available modules - Numpy and Matplotlib.
 
 ## Overview ##
 
@@ -44,11 +44,6 @@ Latest development effort for the **propNav** program has been with Anaconda 3 P
     <td align="left">Numpy</td>
     <td align="center">1.16.5</td>
     <td align="center">1.24.4</td>
-   </tr>
-   <tr>
-    <td align="left">SciPy</td>
-    <td align="center">1.3.1</td>
-    <td align="center">1.11.3</td>
    </tr>
    <tr>
     <td align="left">Matplotlib</td>
