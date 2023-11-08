@@ -33,43 +33,45 @@
   </head>
   <body>
     <p class="text">
-    Clicking the propNav sample case links in following table will present an MP4 video of the described missile/target engagement.
+    Clicking the sample case links in following table will present an MP4 video of animation rendered by <a href="https://www.github.com/gedeschaines/threeD">threeD</a> from corresponding TXYZ.OUT.#### trajectory file created by propNav for described missile/target engagement.
     </p>
     <div id="table" style="padding:40px;">
-      <table id="examples" align="center"> 
+      <table id="examples" align="left"> 
         <tr>
           <th>Link</th>
-          <th>Description</th>
+          <th>Sample Case Description</th>
         </tr>
         <tr>
           <td><a href="https://gedeschaines.github.io/propNav/img/img_anim_1243.mp4" target="_blank">
             <span style="white-space: nowrap;">1243</span></a></td>
           <td>SAM @ 450 meters/sec launched at 10 deg azimuth lead and 12 deg elevation angles against fixed-wing target @ 200 meters/sec initially heading due left of launch site, 2000 meters downrage 
-              and 500 meters altitude performing a 3g leftward horizontal turn.</td>
+              and 500 meters altitude performing a 3g leftward level turn. Scored as intercept, with closing distance of less than an inch at 4.4132 seconds time-of-flight.</td>
         </tr>
         <tr>
           <td><a href="https://gedeschaines.github.io/propNav/img/img_anim_1246.mp4" target="_blank">
             <span style="white-space: nowrap;">1246</span></a></td>
           <td>SAM @ 450 meters/sec launched at 10 deg azimuth lead and 12 deg elevation angles against fixed-wing target @ 200 meters/sec initially heading due left of launch site, 2000 meters downrage 
-              and 500 meters altitude performing in 6g leftward horizontal turn.</td>
+              and 500 meters altitude performing in 6g leftward level turn. Scored as miss, with closing distance of about 21 feet at 3.9718 seconds time-of-flight.</td>
+        </tr>
+        <tr>
+          <td colspan="2">
+            The digits of numeric sample case identifiers specify following propNav modeling options:
+            <ul>
+              <li>1000's digit - Missile type; 1 = SAM, 2 = AAM</li>
+              <li>100's digit - Proportional Navigation (PN) guidance method;<br/>
+                <ol>
+                  <li>True PN (TPN)</li>
+                  <li>Pure PN (PPN)</li>
+                  <li>Zero Effort Miss (ZEM) PN</li>
+                  <li>Augmented True PN (ATPN)</li>
+                  <li>Augmented Pure PN (APPN)</li>
+                </ol></li>
+              <li>10's digit - Proportional Navigation constant</li>
+              <li>1's digit - Target turning acceleration in g's</li>
+            </ul>
+          </td>
         </tr>
       </table>
     </div>
-    <p align="left">
-     The digits of numeric case identifiers specify following propNav modeling options:
-      <ul>
-        <li>1000's digit - Missile type; 1 = SAM, 2 = AAM</li>
-        <li>100's digit - Proportional Navigation (PN) guidance method;<br/>
-          <ol>
-            <li>True PN (TPN)</li>
-            <li>Pure PN (PPN)</li>
-            <li>Zero Effort Miss (ZEM) PN</li>
-            <li>Augmented True PN (ATPN)</li>
-            <li>Augmented Pure PN (APPN)</li>
-          </ol></li>
-        <li>10's digit - Proportional Navigation constant</li>
-        <li>1's digit - Target turning acceleration in g's</li>
-      </ul>
-    </p>
   </body>
 </html>
