@@ -1,0 +1,75 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html lang="en">
+  <head>
+    <meta http-equiv="content-type" content="text/html; charset=UTF-8">
+    <title>propNav Sample Cases</title>
+    <style type="text/css">
+      p.text {
+        margin-top: 10px;
+        margin-bottom: 10px;
+        margin-right: 40px;
+        margin-left: 40px;
+      }
+      #examples {
+        font-family: "Trebuchet MS", Arial, Helvetica, sans-serif;
+        border-collapse: collapse;
+        width: 80%;
+      }
+      #examples td, #examples th {
+        border: 1px solid #ddd;
+        padding: 8px;
+      }
+      #examples tr:hover {
+        background-color: #ddd;
+      }
+      #examples th {
+        padding-top: 12px;
+        padding-bottom: 12px;
+        text-align: left;
+        background-color: #555555;
+        color: white;
+      }
+    </style>
+  </head>
+  <body>
+    <p class="text">
+    Clicking the propNav sample case links in following table will present an MP4 video of the described missile/target engagement.
+    </p>
+    <div id="table" style="padding:40px;">
+      <table id="examples" align="center"> 
+        <tr>
+          <th>Link</th>
+          <th>Description</th>
+        </tr>
+        <tr>
+          <td><a href="https://gedeschaines.github.io/propNav/img/img_anim_1243.mp4" target="_blank">
+            <span style="white-space: nowrap;">1243</span></a></td>
+          <td>SAM @ 450 meters/sec launched at 10 deg azimuth lead and 12 deg elevation angles against fixed-wing target @ 200 meters/sec initially heading due left of launch site, 2000 meters downrage 
+              and 500 meters altitude performing a 3g leftward horizontal turn.</td>
+        </tr>
+        <tr>
+          <td><a href="https://gedeschaines.github.io/propNav/img/img_anim_1246.mp4" target="_blank">
+            <span style="white-space: nowrap;">1246</span></a></td>
+          <td>SAM @ 450 meters/sec launched at 10 deg azimuth lead and 12 deg elevation angles against fixed-wing target @ 200 meters/sec initially heading due left of launch site, 2000 meters downrage 
+              and 500 meters altitude performing in 6g leftward horizontal turn.</td>
+        </tr>
+      </table>
+    </div>
+    <p align="left">
+     The digits of numeric case identifiers specify following propNav modeling options:
+      <ul>
+        <li>1000's digit - Missile type; 1 = SAM, 2 = AAM</li>
+        <li>100's digit - Proportional Navigation (PN) guidance method;<br/>
+          <ol>
+            <li>True PN (TPN)</li>
+            <li>Pure PN (PPN)</li>
+            <li>Zero Effort Miss (ZEM) PN</li>
+            <li>Augmented True PN (ATPN)</li>
+            <li>Augmented Pure PN (APPN)</li>
+          </ol></li>
+        <li>10's digit - Proportional Navigation constant</li>
+        <li>1's digit - Target turning acceleration in g's</li>
+      </ul>
+    </p>
+  </body>
+</html>
