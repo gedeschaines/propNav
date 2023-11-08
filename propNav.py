@@ -890,8 +890,10 @@ if __name__ == "__main__":
     
     if (num_trys == max_trys) or (Dcls[istop] > MinMissDist):
         INTERCEPT = False
+        print("\n*** Missile missed target.")
     else:
         INTERCEPT = True
+        print("\n*** Missile intercepted target.")
     
     if PLOT_DATA or PRINT_TXYZ :
         
