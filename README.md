@@ -2,10 +2,14 @@
 
 ____________
 
- <p align="center">
-  <img src="./img/img_anim_1243.gif" width="800" height="600" alt="Animated GIF from threeD rendering for TXYZ.OUT.1243"/><br>
-  Animated GIF from threeD rendering for TXYZ.OUT.1243 
- </p>
+ <div align="center">
+   <video width="640" height="480" controls>
+    <source src="./img/img_anim_1243.mp4" type="video/mp4"/>
+   Your browser does not support the video tag. An animated GIF is provided 
+   <a href="./img/img_anim_1243.gif" target="_blank">here</a>.<br>
+   </video>
+  MP4 video from threeD rendering for TXYZ.OUT.1243.
+ </div>
 
 A 3-DOF point mass kinematic model of an ideal proportional navigation guidance missile written entirely in Python 3; dependent upon only two readily available modules - Numpy and Matplotlib.
 
@@ -22,7 +26,7 @@ The repository main directory contains this README file, plain text disclaimer f
 
 The contents of each subdirectory are as follows:
 
-+ ./img - Figure 12 3D plot from **propNav**  SAM case 1234 and animated GIF file created with **threeD** from ./out/TXYZ.OUT.1234 file.
++ ./img - Figure 12 3D plot from **propNav**  SAM case 1234, animated GIF and MP4 video files created with **threeD** from ./out/TXYZ.OUT.1234 file.
 + ./out - TXYZ.OUT trajectory data files written by **propNav** for sample missile/target engagement cases (see "Sample Cases" section below).
 
 ## Execution Prerequisites ##
@@ -66,7 +70,7 @@ The first figure is a plot depicting closing distances at time-of-intercept and 
   Figure 12 for engagement saved in TXYZ.OUT.1243
  </p>
 
-If the "PRINT_TXYZ" flag in the propNav.py file is set to true, then a trajectory data file of the name "TXYZ.OUT.####" will be written to the ./out subdirectory. This trajectory data file can be read and rendered by the **[threeD](https://github.com/gedeschaines/threeD)** program. Follow steps delineated in the "Execution Overview" section of the associated [README](https://github.com/gedeschaines/threeD#readme) file. The animated GIF displayed in the header of this document was rendered by **threeD**..
+If the "PRINT_TXYZ" flag in the propNav.py file is set to true, then a trajectory data file of the name "TXYZ.OUT.####" will be written to the ./out subdirectory. This trajectory data file can be read and rendered by the **[threeD](https://github.com/gedeschaines/threeD)** program. Follow steps delineated in the "Execution Overview" section of the associated [README](https://github.com/gedeschaines/threeD#readme) file. The MP4 video displayed in the header of this document was rendered by **threeD**..
 
 Although **propNav** can be run from a command terminal, users may find it easier from within the Spyder IDE application. Doing so allows code modification prior to program execution, such as changing missile or target initial conditions, or selecting different processing options. Additionally, if a Spyder IDE version 4 or greater is utilized, the twelve plot figures can be "inlined" within the Spyder workspace Plot Pane instead of cascaded across the desktop. Unfortunately "inlined" plots are not interactive. This primarily affects the 3D plot presented in figure 12. Instead of being able to rotate the plot for best viewing angle, the "elev" and "azim" arguments in figure 12's "ax.view_init()" procedure call have to be modified and the program rerun.
 
