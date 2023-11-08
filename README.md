@@ -4,7 +4,7 @@ ____________
 
  <div align="center">
    <video width="640" height="480" controls>
-    <source src="./img/img_anim_1243.mp4" type="video/mp4"/>
+    <source src="https://github.com/gedeschaines/gedeschaines.gitgub.io/blob/main/img_anim_1243.mp4" type="video/mp4"/>
    Your browser does not support the video tag. An animated GIF is provided 
    <a href="./img/img_anim_1243.gif" target="_blank">here</a>.<br>
    </video>
