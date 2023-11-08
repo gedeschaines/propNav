@@ -25,36 +25,74 @@
       #examples th {
         padding-top: 12px;
         padding-bottom: 12px;
-        text-align: left;
+        text-align: center;
         background-color: #555555;
         color: white;
+      }
+      #examples td {
+        text-align: right;
+      }
+      #notes td, #notes tr {
+        text-align: left;
       }
     </style>
   </head>
   <body>
     <p class="text">
-    Clicking the sample case links in following table will present an MP4 video of animation rendered by <a href="https://www.github.com/gedeschaines/threeD">threeD</a> from corresponding TXYZ.OUT.#### trajectory file created by propNav for described missile/target engagement.
+    Clicking the sample case links in following table will present an MP4 video of animation rendered by <a href="https://www.github.com/gedeschaines/threeD">threeD</a> from corresponding TXYZ.OUT.#### trajectory file created by <a href="https://www.github.com/gedeschaines/propNav">propNav</a> for described missile/target engagement.
     </p>
     <div id="table" style="padding:40px;">
-      <table id="examples" align="left"> 
+      <table id="examples" align="left" rows="3", cols="11"> 
         <tr>
-          <th>Link</th>
-          <th>Sample Case Description</th>
+          <th rowspan="3" colspan="1">Link to Video</th>
+          <th rowspan="1" colspan="8">Sample Case Description</th>
+          <th rowspan="1" colspan="2">Engagement Results</th>
         </tr>
+        <tr>
+          <th rowspan="1" colspan="3">Missile</th>  
+          <th rowspan="1" colspan="5">Target</th>
+          <th rowspan="1" colspan="2">End Game</th>
+        <tr>
+          <th>Constant Velocity Magnitude (meters/sec)</th>
+          <th>Azimuth Lead Angle (deg)</th>
+          <th>Elevation Angle (deg)</th>
+          <th>Constant Velocity Magnitude (meters/sec)</th>
+          <th>Downrange (meters)</th>
+          <th>Altitude (meters AGL)</th>
+          <th>Heading wrt Missile (deg)</th>
+          <th>Constant Turning G's</th>
+          <th>Closing Distance (feet)</th>
+          <th>Time of Flight (sec)</th>
         <tr>
           <td><a href="https://gedeschaines.github.io/propNav/img/img_anim_1243.mp4" target="_blank">
             <span style="white-space: nowrap;">1243</span></a></td>
-          <td>SAM @ 450 meters/sec launched at 10 deg azimuth lead and 12 deg elevation angles against fixed-wing target @ 200 meters/sec initially heading due left of launch site, 2000 meters downrange 
-              and 500 meters altitude performing a 3g leftward level turn. Scored as intercept, with closing distance of less than an inch at 4.4132 seconds time-of-flight.</td>
+          <td>450</td>
+          <td>10</td>
+          <td>12</td> 
+          <td>200</td>
+          <td>2000</td>
+          <td>500</td>
+          <td>90 left</td>
+          <td>3 left</td>
+          <td>0.03</td>
+          <td>4.4132</td>
         </tr>
         <tr>
           <td><a href="https://gedeschaines.github.io/propNav/img/img_anim_1246.mp4" target="_blank">
             <span style="white-space: nowrap;">1246</span></a></td>
-          <td>SAM @ 450 meters/sec launched at 10 deg azimuth lead and 12 deg elevation angles against fixed-wing target @ 200 meters/sec initially heading due left of launch site, 2000 meters downrange 
-              and 500 meters altitude performing in 6g leftward level turn. Scored as miss, with closing distance of about 21 feet at 3.9718 seconds time-of-flight.</td>
+          <td>450</td>
+          <td>10</td>
+          <td>12</td> 
+          <td>200</td>
+          <td>2000</td>
+          <td>500</td>
+          <td>90 left</td>
+          <td>6 left</td>
+          <td>21.14</td>
+          <td>3.9718</td>
         </tr>
-        <tr>
-          <td colspan="2">
+        <tr id="notes">
+          <td id="notes" rowspan="1" colspan="11">
             The digits of numeric sample case identifiers specify following propNav modeling options:
             <ul>
               <li>1000's digit - Missile type; 1 = SAM, 2 = AAM</li>
