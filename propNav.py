@@ -1319,16 +1319,17 @@ if __name__ == "__main__":
                       file=f)
         
             # Append padded time record for rendering and display of
-            # last frame by threeD program. Time of iend frame, but
-            # with missile and target states of istop frame.
+            # last frame by threeD program. Time of istop frame plus 
+            # 2*T_STEP, but with missile and target states of istop 
+            # frame.
         
             print(fmt1 % \
-                      (Time[iend], -1, Pme[0,0,i], -Pme[0,1,i], -Pme[0,2,i], 
-                                       Pte[0,0,i], -Pte[0,1,i], -Pte[0,2,i]),
+                      (Time[istop]+2*T_STEP, -1, Pme[0,0,istop], -Pme[0,1,istop], -Pme[0,2,istop], 
+                                                 Pte[0,0,istop], -Pte[0,1,istop], -Pte[0,2,istop]),
                       file=f)
             print(fmt2 % \
-                      (-9999, -9999, PHImd[i], THTm[i], PSIm[i], 
-                                     PHItd[i], THTt[i], PSIt[i]),
+                      (-9999, -9999, PHImd[istop], THTm[istop], PSIm[istop], 
+                                     PHItd[istop], THTt[istop], PSIt[istop]),
                       file=f)
             
             print("\nTXYZ.OUT trajectory data written to:  %s" % txyz_path)
