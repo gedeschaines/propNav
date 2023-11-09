@@ -1320,11 +1320,11 @@ if __name__ == "__main__":
         
             # Append padded time record for rendering and display of
             # last frame by threeD program. Time of istop frame plus 
-            # 2*T_STEP, but with missile and target states of istop 
+            # 2*F_TIME, but with missile and target states of istop 
             # frame.
         
             print(fmt1 % \
-                      (Time[istop]+2*T_STEP, -1, Pme[0,0,istop], -Pme[0,1,istop], -Pme[0,2,istop], 
+                      (Time[istop]+2*F_TIME, -1, Pme[0,0,istop], -Pme[0,1,istop], -Pme[0,2,istop], 
                                                  Pte[0,0,istop], -Pte[0,1,istop], -Pte[0,2,istop]),
                       file=f)
             print(fmt2 % \
