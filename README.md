@@ -22,7 +22,7 @@ The repository main directory contains this README file, plain text disclaimer f
 
 The contents of each subdirectory are as follows:
 
-+ ./img - Figure 12 3D plot from **propNav**  SAM case 1234, animated GIF and MP4 video files created with **threeD** from ./out/TXYZ.OUT.1234 file.
++ ./img - Figure 12 3D plot from **propNav**  SAM case 1234, animated GIF file created with **threeD** from ./out/TXYZ.OUT.1234 file.
 + ./out - TXYZ.OUT trajectory data files written by **propNav** for sample missile/target engagement cases (see "Sample Cases" section below).
 
 ## Execution Prerequisites ##
