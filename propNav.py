@@ -69,7 +69,9 @@
 
 import sys
 
-from math import ceil, floor, cos, sin, acos, asin, atan, atan2, pi
+
+from math import ceil, floor, cos, sin, acos, asin, atan, atan2, pi 
+from io import StringIO
 #from locale import format_string
 
 try:
@@ -178,10 +180,6 @@ if MSL == SAM:
 else:
     UWt = Uyi  # for climbing turn in XZ plane
 UWt = UWt/la.norm(UWt)
-
-# Assemble run case identifier appended to "./out/TXYZ.OUT."
-
-CASE = "{0}".format(MSL*1000 + PNAV*100 + int(Nm)*10 + int(Nt))
 
 # Set integration time step size and simulation stop time (sec).
 
@@ -640,8 +638,11 @@ if PLOT_DATA or PRINT_TXYZ:
     Thoff = np.zeros(nSamples+1)  # Target horiz. offset angle sines
     Tvoff = np.zeros(nSamples+1)  # Target vert. offset angle sines
     
+
 def collectData(i, t, S):
     
+    global LastPorY
+   
     # Get current target and missile states.
     Vt, Pt, Vm, Pm = getS(S)
     
@@ -674,12 +675,14 @@ def collectData(i, t, S):
         Uyb  = np.matmul(Mbi,  Uyi)  # positive accel axis
         wsgn = np.sign(np.dot(Wlosb, Uzb))
         asgn = np.sign(np.dot(Amb,   Uyb))
+        PorY = 'Y'
     else:
         # predominantly pitch maneuver
         Uyb  = np.matmul(Mbi, -Uyi)  # positive pitch axis
         Uzb  = np.matmul(Mbi,  Uzi)  # positive accel axis
         wsgn = np.sign(np.dot(Wlosb, Uyb))
         asgn = np.sign(np.dot(Amb,   Uzb))
+        PorY = 'P'
     losr  = wsgn*la.norm(Wlosb)
     vcls  = la.norm(Vclose(Vrel(Vt,Vm), Ulos))
     dcls  = Dclose(S)
@@ -713,6 +716,10 @@ def collectData(i, t, S):
         print("closing distance:  %9.4f meters" % dcls)
         print("missile accel.:    %9.4f g's" % acmg)
         print("ZEM distance:      %9.4f meters" % zemd)
+        
+    if PorY != LastPorY:
+        print("\nt=%9.5f  %s  sgn_Wlos= %4.1f  sgn_Am= %4.1f" % (t, PorY, wsgn, asgn))
+        LastPorY = PorY
         
     if PLOT_DATA or PRINT_TXYZ:
         
@@ -752,6 +759,14 @@ def collectData(i, t, S):
 ###
 
 if __name__ == "__main__":
+    
+    # Global for saving last missile major rotation, Pitch or Yaw,
+    # to explain sign changes in missile acceleration and LOS rate
+    # profile plots.
+    
+    global LastPorY
+    
+    LastPorY = None
     
     # Estimate time-to-intercept and target position
     # at intercept.
@@ -1130,13 +1145,14 @@ if __name__ == "__main__":
         plt.xlim([-0.5,  0.5])  # +/- 30 degrees
         plt.ylim([ 0.5, -0.5])  # +/- 30 degrees
         plt.grid()
-        plt.plot(Thoff[0:iend], Tvoff[0:iend], ',:r')
+        plt.plot(Thoff[0:1], Tvoff[0:1], 'o:r')
+        plt.plot(Thoff[1:iend], Tvoff[1:iend], ',:r')
         if INTERCEPT:
             plt.plot(Thoff[istop:iend], Tvoff[istop:iend], 'xm')
-            plt.legend(('Target','Intercept'), loc='upper left')
+            plt.legend(('Target at To','Target Path','Intercept'), loc='upper left')
         else:
             plt.plot(Thoff[istop:iend], Tvoff[istop:iend], 'oc')
-            plt.legend(('Target','Missed'), loc='upper left')
+            plt.legend(('Target at To','Target Path','Missed'), loc='upper left')
         
         ## Figure 12 - 3D missile/target engagement trajectories plot.
         figures.append(plt.figure(12, figsize=(8,8), dpi=80))
@@ -1295,6 +1311,12 @@ if __name__ == "__main__":
             PHIt[i] = bankAngle(Ate[0,:,i],Vte[0,:,i])
         PHItd = np.fmod(PHIt[0:iend], twopi)*DPR
         
+        # Assemble run case identifier appended to "./out/TXYZ.OUT."
+
+        sbuff = StringIO()
+        sbuff.write("%1d%1d%1d%1d" % (int(MSL), int(PNAV), int(Nm), int(Nt)))
+        case = sbuff.getvalue()
+        
         # TXYZ output file record formats.
 
         fmt1 = " %9.4f %9d %10.2f %10.2f %10.2f %10.2f %10.2f %10.2f"
@@ -1302,7 +1324,7 @@ if __name__ == "__main__":
         
         # Open TXYZ output file and write trajectory data.
         
-        txyz_path = "./out/TXYZ.OUT.{0}".format(CASE)
+        txyz_path = "./out/TXYZ.OUT.{0}".format(case)
         
         try:
             
@@ -1324,13 +1346,13 @@ if __name__ == "__main__":
             # frame.
         
             print(fmt1 % \
-                      (Time[istop]+2*F_TIME, -1, Pme[0,0,istop], -Pme[0,1,istop], -Pme[0,2,istop], 
-                                                 Pte[0,0,istop], -Pte[0,1,istop], -Pte[0,2,istop]),
-                      file=f)
+                  (Time[istop]+2*F_TIME, -1, Pme[0,0,istop], -Pme[0,1,istop], -Pme[0,2,istop], 
+                                             Pte[0,0,istop], -Pte[0,1,istop], -Pte[0,2,istop]),
+                  file=f)
             print(fmt2 % \
-                      (-9999, -9999, PHImd[istop], THTm[istop], PSIm[istop], 
-                                     PHItd[istop], THTt[istop], PSIt[istop]),
-                      file=f)
+                  (-9999, -9999, PHImd[istop], THTm[istop], PSIm[istop], 
+                                 PHItd[istop], THTt[istop], PSIt[istop]),
+                  file=f)
             
             print("\nTXYZ.OUT trajectory data written to:  %s" % txyz_path)
                   
