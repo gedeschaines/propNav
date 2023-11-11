@@ -641,7 +641,7 @@ if PLOT_DATA or PRINT_TXYZ:
 
 def collectData(i, t, S):
     
-    global LastPorY
+    global LastPorY, LastWsgn, LastAsgn
    
     # Get current target and missile states.
     Vt, Pt, Vm, Pm = getS(S)
@@ -717,9 +717,12 @@ def collectData(i, t, S):
         print("missile accel.:    %9.4f g's" % acmg)
         print("ZEM distance:      %9.4f meters" % zemd)
         
-    if PorY != LastPorY:
+    if (PorY != LastPorY) \
+        or ((PorY == LastPorY) and ((wsgn != LastWsgn) or (asgn != LastAsgn))):
         print("\nt=%9.5f  %s  sgn_Wlos= %4.1f  sgn_Am= %4.1f" % (t, PorY, wsgn, asgn))
-        LastPorY = PorY
+        if PorY != LastPorY : LastPorY = PorY
+        if wsgn != LastWsgn : LastWsgn = wsgn
+        if asgn != LastAsgn : LastAsgn = asgn
         
     if PLOT_DATA or PRINT_TXYZ:
         
@@ -760,13 +763,18 @@ def collectData(i, t, S):
 
 if __name__ == "__main__":
     
-    # Global for saving last missile major rotation, Pitch or Yaw,
-    # to explain sign changes in missile acceleration and LOS rate
+    # Globals for saving last predominant missile rotation, Pitch
+    # or Yaw, and last LOS rate and missile acceleration signs to
+    # explain sign changes in LOS rate and missile acceleration 
     # profile plots.
     
-    global LastPorY
+    global LastPorY  # pitch or yaw:  'P' or 'Y'
+    global LastWsgn  # LOS rate sign: -1.0 or 1.0
+    global LastAsgn  # missile acceleration sign: -1.0 or 1.0
     
     LastPorY = None
+    LastWsgn = None
+    LastAsgn = None
     
     # Estimate time-to-intercept and target position
     # at intercept.
