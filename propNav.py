@@ -257,12 +257,32 @@ def Mrot(psi, tht, phi):
     return Mbi
 
 def leadAngle(Pt, Vt, Pm, magVm):
+    #
+    # Assuming constant velocity magnitudes and
+    # headings, at some future intercept point the
+    # triangle formed by missile velocity magVm and
+    # target velocity magVt toward that point from 
+    # their current positions Pm and Pt, and the
+    # LOS distance between current positions (i.e., 
+    # Rlos = Pt - Pm) must satisfy the following
+    # relationship:
+    #
+    #   Vm*sin(alpha) = Vt*sin(beta)
+    #
+    # where alpha (lead angle) is the angle between 
+    # Vm and Rlos, and beta is the angle between Vt
+    # and Rlos. Using definition of inner product:
+    #
+    #   cos(beta) = <Vt, Rlos> / |Vt||Rlos|
+    #
+    # a value for beta can determined, and then the
+    # above relationship solved for alpha.
+    #
     magVt = la.norm(Vt)
     Ptm   = Prel(Pt, Pm)
-    term1 = np.dot(Vt,Ptm)/(magVt*la.norm(Ptm))
-    term2 = magVt/magVm
-    az = asin(sin(acos(term1))*term2)
-    return az  # Note: az in radians.
+    cosb  = np.dot(Vt, Ptm)/(magVt*la.norm(Ptm))
+    alpha = asin((magVt/magVm)*sin(acos(cosb)))
+    return alpha  # Note: alpha in radians.
 
 def az_el_of_V(V):
     # Note: DPR is global
@@ -270,10 +290,6 @@ def az_el_of_V(V):
     az = atan2(U[1], U[0])*DPR
     el = atan(U[2]/la.norm([U[0], U[1]]))*DPR
     return az, el  # Note: az and el in degrees.
- 
-def timeToGo(Rlos, Vt, Vm):
-    tgo = la.norm(Rlos)/la.norm(Vm-Vt)
-    return tgo
 
 def setVm(vmag, az, el):
     vx = vmag*cos(el)*cos(az)
@@ -282,6 +298,67 @@ def setVm(vmag, az, el):
     Vm = np.array([vx, vy, vz])
     return Vm
 
+def Vclose(Vt, Vm, Ulos, collision=False):
+    # Note:  Closing velocity is defined as -d(Rlos)/dt.
+    if collision == True:
+        # Calculate collision closing velocity (see calcVcTgo).
+        vt = la.norm(Vt)
+        vm = la.norm(Vm)
+        betat = acos(np.dot(Vt, Ulos)/vt)
+        betam = asin((vt/vm)*sin(betat))
+        Vc = (vm*cos(betam) - vt*cos(betat))*Ulos
+    else:
+        # Calculate standard closing velocity which assumes 
+        # Vt, Vm and Ulos are all within the same plane.
+        Vc = -np.dot(Vrel(Vt,Vm), Ulos)*Ulos
+    return Vc
+ 
+def timeToGo(Rlos, Vt, Vm):
+    # Note:  Uses collision closing velocity (see calcVcTgo).
+    vcc = la.norm(Vclose(Vt, Vm, Uvec(Rlos), True))
+    tgo = la.norm(Rlos)/vcc
+    return tgo
+
+def calcVcTgo(Pt, Vt, Pm, Vm):
+    #
+    # Calculates Vc as collision course relative (closing)
+    # velocity of missile wrt target, and Tgo as time-to-go
+    # (to intercept) using equations presented on pgs 25-26
+    # in sections C.1.1, C.1.2 and C.1.3 of ref [6].
+    #
+    azt, elt   = az_el_of_V(Vt)
+    aztm, eltm = az_el_of_V(Prel(Pt,Pm))
+    
+    thtt  = elt*RPD
+    psit  = -azt*RPD
+    thttm = eltm*RPD
+    psitm = -aztm*RPD
+    
+    # Unit vector (evt) along target body, and unit Rlos (estm) vector;
+    # equations (A2.1) and (A2.2).
+    evt  = np.array([cos(thtt)*cos(psit), cos(thtt)*sin(psit), -sin(thtt)])
+    estm = np.array([cos(thttm)*cos(psitm), cos(thttm)*sin(psitm), -sin(thttm)])
+ 
+    # Angle between target velocity vector Vt and the Rlos vector measured
+    # in Vt X Rlos X Vm plane; equations (A2.3) and (A2.4).
+    Betatm = acos(np.dot(evt, estm))
+    
+    # Angle between missile collision course velocity vector and the
+    # RLos vector measured in Vt X Rlos X Vm plane; equation (A2.6).
+    Betaccmt = asin((la.norm(Vt)/la.norm(Vm))*sin(Betatm))
+    
+    # Collision course closing velocity of missile wrt target along
+    # Rmt; equation (A2.7).
+    VCccmt = la.norm(Vm)*cos(Betaccmt) - la.norm(Vt)*cos(Betatm)
+    
+    # Target/missile range-to-go; equation (A2.8).
+    Rmt = la.norm(Prel(Pm, Pt))
+    
+    # Time-to-go; equation (A2.9).
+    Tgo = Rmt/VCccmt
+    
+    return VCccmt, Tgo
+
 def ZEMn(Rlos, Vtm, tgo):
     Ulos = Uvec(Rlos)
     ZEM  = Rlos + Vtm*tgo
@@ -289,15 +366,10 @@ def ZEMn(Rlos, Vtm, tgo):
     ZEMn = ZEM - ZEMr 
     return ZEMn
 
-def Vclose(Vtm, Ulos):
-    # Note:  Closing velocity is defined as -d(Rlos)/dt.
-    Vc = -np.dot(Vtm, Ulos)*Ulos
-    return Vc
-
-def Wlos(Vtm, Rlos, Ulos):
+def Wlos(Vt, Vm, Rlos, Ulos):
     # Note:  Following expressions for calculating Wlos
     #
-    Vnrm = Vtm - Vclose(Vtm, Ulos)
+    Vnrm = Vrel(Vt, Vm) - Vclose(Vt, Vm, Ulos)
     Wlos = np.cross(-Vnrm, Ulos)/la.norm(Rlos)
     #
     # is equivalent to:
@@ -355,14 +427,14 @@ def Amslc(Rlos, Vt, At, Vm, N):
         #
         if PNAV == PN_APPN:
             # 3.1.1 Version 1 (PN-1) Pure PN equation (3.2)
-            PN_1i = N*np.cross(Wlos(Vtm, Rlos, Ulos), Vm)
+            PN_1i = N*np.cross(Wlos(Vt, Vm, Rlos, Ulos), Vm)
             PN_1b = np.matmul(Mbi, PN_1i)  # eq. (3.3)
             PN_1b[0] = 0.0                 # eq. (3.4)
             PNG = PN_1b
         if PNAV == PN_ATPN:
             # 3.1.2 Version 2 (PN-2) True PN equation (3.5)
-            Vc    = la.norm(Vclose(Vtm, Ulos))
-            PN_2i = N*Vc*np.cross(Wlos(Vtm, Rlos, Ulos), Ulos)
+            Vc    = la.norm(Vclose(Vt, Vm, Ulos))
+            PN_2i = N*Vc*np.cross(Wlos(Vt, Vm, Rlos, Ulos), Ulos)
             PN_2b = np.matmul(Mbi, PN_2i)  # eq. (3.6)
             PN_2b[0] = 0.0                 # eq. (3.7)
             PNG = PN_2b  # Section 2, Module 3 of ref [5].
@@ -376,10 +448,10 @@ def Amslc(Rlos, Vt, At, Vm, N):
         Acmd = N*ZEMn(Rlos, Vtm, tgo)/(tgo**2)
         Acmd = Acmd - np.dot(Acmd, Uvec(Vm))*Uvec(Vm)  # no thrust control
     elif PNAV == PN_PURE:
-        Acmd = N*np.cross(Wlos(Vtm, Rlos, Ulos), Vm)
+        Acmd = N*np.cross(Wlos(Vt, Vm, Rlos, Ulos), Vm)
     else: # PNAV == PN_TRUE
-        Vc   = la.norm(Vclose(Vtm, Ulos))
-        Acmd = N*Vc*np.cross(Wlos(Vtm, Rlos, Ulos), Ulos)
+        Vc   = la.norm(Vclose(Vt, Vm, Ulos))
+        Acmd = N*Vc*np.cross(Wlos(Vt, Vm, Rlos, Ulos), Ulos)
         Acmd = Acmd - np.dot(Acmd, Uvec(Vm))*Uvec(Vm)  # no thrust control
     return Acmd
 
@@ -661,12 +733,12 @@ def collectData(i, t, S):
     dS = dotS(nSvar, S)
     dVt, dPt, dVm, dPm = getSdot(dS)
             
-    # Calculate current time-to-go, LOS rate, closing velocity
+    # Calculate current time-to-go, LOS rate, closing velocity,
     # closing distance, missile acceleration in g's, and ZEM.
 
     Ulos  = Uvec(Rlos)
     tgo   = timeToGo(Rlos, Vt, Vm)
-    Wlosi = Wlos(Vrel(Vt,Vm), Rlos, Ulos)
+    Wlosi = Wlos(Vt, Vm, Rlos, Ulos)
     Wlosb = np.matmul(Mbi, Wlosi)
     Amb   = np.matmul(Mbi,dVm)
     if abs(Wlosb[2]) >= abs(Wlosb[1]):
@@ -684,11 +756,16 @@ def collectData(i, t, S):
         asgn = np.sign(np.dot(Amb,   Uzb))
         PorY = 'P'
     losr  = wsgn*la.norm(Wlosb)
-    vcls  = la.norm(Vclose(Vrel(Vt,Vm), Ulos))
+    vcls  = la.norm(Vclose(Vt, Vm, Ulos, True))
     dcls  = Dclose(S)
     acmg  = asgn*la.norm(dVm)/g
     zemd  = la.norm(ZEMn(Rlos, Vrel(Vt,Vm), tgo))
-        
+    
+    Vc, Tgo = calcVcTgo(Pt, Vt, Pm, Vm)
+    
+    np.testing.assert_almost_equal(vcls, Vc, 3)
+    np.testing.assert_almost_equal(tgo, Tgo, 4)
+             
     # Display current missile and target states and
     # intercept status; collect data for plotting
     # or printing.
@@ -777,7 +854,18 @@ if __name__ == "__main__":
     LastAsgn = None
     
     # Estimate time-to-intercept and target position
-    # at intercept.
+    # at intercept using Law of Cosines:
+    #
+    #   C**2 = A**2 + B**2 - 2*A*B*cos(alpha)
+    #
+    # where:
+    #
+    #   A     = |Pt0 - Pm0|
+    #   B     = |Vm0|*tint
+    #   C     = |Vt0|*tint
+    #   alpha = leadAngle
+    #
+    # Then solve the quadratic equation for tint.
     
     magVt = la.norm(Vt0)
     dtm   = la.norm(Prel(Pt0,Pm0))
