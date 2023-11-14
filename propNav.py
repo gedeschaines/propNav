@@ -224,17 +224,27 @@ def Mrot(psi, tht, phi):
     for inertial frame Cartesian coordinates (Xi,Yi,Zi) to body
     frame coordinates (xb,yb,zb) derived from equation (7-166)
     on pg 335 of ref [2] (same as that presented in Figure 3 on
-    pg 6 of ref [6]).
-    
+    pg 6 of ref [6]). In the derivation below, consider the 
+    xyz inertial frame depicted in Figure 3 on pg 6 of ref [6]
+    rotated 180 deg counter-clockwise about the +yi axis so the
+    +zi axis points toward top of the page, then the following
+    relationships exist between azimuth, elevation and bank 
+    angles in propNav inertial frame and psi, theta, phi in 
+    the figure:
+        
+      psi = azimuth
+      theta = -elevation
+      phi = bank angle
+     
     Note:  Yaw, pitch and roll are expected to be in radians,
            NOT degrees!
     
-    Use as:  [xb, yb, zb] = Numpy.matmul(M, [Xi, Yi, Zi])
+    Use as:  [xb, yb, zb] = Numpy.matmul(Mbi, [Xi, Yi, Zi])
     """
     cpsi = cos(psi)
     spsi = sin(psi)
-    ctht = cos(-tht)  # account for yaw = -azimuth
-    stht = sin(-tht)  # account for yaw = -azimuth
+    ctht = cos(-tht)
+    stht = sin(-tht)
     cphi = cos(phi)
     sphi = sin(phi)
     
@@ -402,7 +412,7 @@ def Amslc(Rlos, Vt, At, Vm, N):
     ----------
     Rlos : float 3-vector
         Range along LOS from missile to target.
-    Vt :  float 3-vector
+    Vt : float 3-vector
         Velocity (inertial) of target.
     At : float 3-vector
         Acceleration (inertial) of target.
@@ -893,6 +903,7 @@ if __name__ == "__main__":
         mel = atan((EstPt[2]-Pm0[2])/la.norm([EstPt[0]-Pm0[0], EstPt[1]-Pm0[1]]))*DPR
 
     Vm0 = setVm(magVm, maz*RPD, mel*RPD)
+
     
     print("Applying %s proportional navigation guidance law." % (PN_LAWS[PNAV]))
     
