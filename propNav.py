@@ -116,7 +116,7 @@ PN_ATPN = 4  # Augmented True Proportional Navigation
 PN_APPN = 5  # Augmented Pure Proportional Navigation
 PN_LAWS = {PN_TRUE:'True', PN_PURE:'Pure', PN_ZEM:'ZEM', 
            PN_ATPN:'ATPN', PN_APPN:'APPN'}
-PNAV    = PN_PURE
+PNAV    = PN_TRUE
 
 Nm = 4    # proportional navigation constant
 Nt = 3.0  # target turning acceleration (g's)
@@ -516,9 +516,23 @@ def Atgt(UWt, Vt, n):
     """
     if n != 0.0:
         magVt = la.norm(Vt)
+        # Calculate lift g's loss due to pitch angle
         theta = pitchAngle(Vt)
-        loss  = sin(theta)  # lift g's loss due to pitch angle
-        At    = np.cross((((n-loss)*g)/magVt)*UWt, Vt.flatten())
+        loss  = sin(theta)
+        # Calculate target az and el in degrees
+        taz, tel = az_el_of_V(Vt)
+        # Set target body frame rotation axis
+        if abs(np.dot(UWt,Uyi)) < 0.0001:
+            UWtb = -UWt  # +yawing about -zb axis
+        else:
+            UWtb = UWt   # +pitching about +zb axis 
+        # Rotate inertial Vt into target body frame
+        Mbi = Mrot(taz*RPD, tel*RPD, 0.0)
+        Vtb = np.matmul(Mbi, Vt)
+        # Calculate inertial acceleration in target body frame
+        Atb = np.cross((((n-loss)*g)/magVt)*UWtb, Vtb.flatten())
+        # Rotate inertial accelaration into inertial space frame
+        At = np.matmul(Mbi.transpose(), Atb)
     else:
         At = np.array([0.0, 0.0, 0.0])
     return At
@@ -535,8 +549,8 @@ def bankAngle(At, Vt):
     # Calculate target az and el in degrees
     taz, tel = az_el_of_V(Vt)
     # Rotate inertial Atn into target body frame
-    M   = Mrot(taz*RPD, tel*RPD, 0.0)
-    Atb = np.matmul(M, Atn)
+    Mbi = Mrot(taz*RPD, tel*RPD, 0.0)
+    Atb = np.matmul(Mbi, Atn)
     # Only use Y component of turning acceleration normal.
     phi = atan(Atb[1]/g)
     return phi  # Note: phi in radians.
