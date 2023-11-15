@@ -116,7 +116,7 @@ PN_ATPN = 4  # Augmented True Proportional Navigation
 PN_APPN = 5  # Augmented Pure Proportional Navigation
 PN_LAWS = {PN_TRUE:'True', PN_PURE:'Pure', PN_ZEM:'ZEM', 
            PN_ATPN:'ATPN', PN_APPN:'APPN'}
-PNAV    = PN_TRUE
+PNAV    = PN_PURE
 
 Nm = 4    # proportional navigation constant
 Nt = 3.0  # target turning acceleration (g's)
