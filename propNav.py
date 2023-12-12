@@ -70,7 +70,7 @@
 import sys
 
 
-from math import ceil, floor, cos, sin, acos, asin, atan, atan2, pi 
+from math import ceil, floor, cos, sin, acos, asin, atan, atan2, pi, sqrt 
 from io import StringIO
 #from locale import format_string
 
@@ -94,7 +94,7 @@ except ImportError:
 
 
 ###
-### Global constants
+### File Scope Constants and Global Variables
 ###
 
 RPD = atan(1.0)/45.0  # radians per degree
@@ -102,6 +102,8 @@ DPR = 1.0/RPD         # degrees per radian
 g   = 9.80665         # gravitational acceleration at sea-level (meters/s/s)
 
 # Unit vectors for inertial Cartesion frame X,Y,Z axes.
+
+global Uxi, Uyi, Uzi
 
 Uxi = np.array([1.0, 0.0, 0.0])
 Uyi = np.array([0.0, 1.0, 0.0])
@@ -118,6 +120,8 @@ PN_LAWS = {PN_TRUE:'True', PN_PURE:'Pure', PN_ZEM:'ZEM',
            PN_ATPN:'ATPN', PN_APPN:'APPN'}
 PNAV    = PN_PURE
 
+global Nm, Nt
+
 Nm = 4    # proportional navigation constant
 Nt = 3.0  # target turning acceleration (g's)
 
@@ -127,6 +131,8 @@ SAM = 1  # For engagements described in Caveats section of propNav README.
 AAM = 2  # For engagements presented in Section 3, Modules 3 & 4, Section 4,
          # Module 4 of ref [4], and Section 2, Module 3 of ref [5].
 MSL = SAM
+
+global Ammax
 
 Gmmax = {SAM:8, AAM:30}  # maximum missile acceleration (g's)
 Ammax = Gmmax[MSL]*g     # maximum missile acceleration (meters/s/s)
@@ -138,18 +144,6 @@ if MSL == SAM:
 else :
     MinMissDist = 6.0
     
-# Missile lead azimuth and elevation angles in degrees. 
-# Set to None for calculation of lead angles based on
-# estimation of time-to-intercept of a non-maneuvering
-# target with constant velocity and heading.
-
-if MSL == SAM:
-   maz = 10.0
-   mel = 12.0
-else:
-   maz = 0.0
-   mel = 0.0
-
 # Define target and missile initial states.
 
 if MSL == SAM:
@@ -171,7 +165,33 @@ else:
         Vt0   = np.array([ -304.8,    0.0,    0.0])
         Pm0   = np.array([    0.0, 6096.0, 3048.0])
         magVm = 914.4
+        
+# Verify missile is faster than target.
 
+magVt = la.norm(Vt0)
+if magVm <= magVt:
+    print("Error:  magVm= %8.2f <= magVt= %8.2f;\n        %s" % \
+          (magVm, magVt, "Missile must be faster than target."))
+    sys.exit()
+   
+# Missile lead azimuth and elevation angles in degrees. 
+# Set to None for calculation of lead angles based on
+# estimation of time-to-intercept of a non-maneuvering
+# target with constant velocity and heading.
+
+if MSL == SAM:
+    # Point missile at target's current position.
+    maz = atan2((Pt0[1]-Pm0[1]),(Pt0[0]-Pm0[0]))*DPR
+    mel = atan((Pt0[2]-Pm0[2])/sqrt((Pt0[0]-Pm0[0])**2 + (Pt0[1]-Pm0[1])**2))*DPR
+    # Add lead angles.
+    #maz +=  4.0
+    #mel +=  2.0
+    maz = 10.0
+    mel = 12.0
+else:
+    maz = 0.0
+    mel = 0.0
+    
 # Define target turning/climbing rotation axis unit vector.
 
 if MSL == SAM:
@@ -295,13 +315,14 @@ def leadAngle(Pt, Vt, Pm, magVm):
     return alpha  # Note: alpha in radians.
 
 def az_el_of_V(V):
-    # Note: DPR is global
+    # Note: DPR is global.
     U  = Uvec(V)
     az = atan2(U[1], U[0])*DPR
     el = atan(U[2]/la.norm([U[0], U[1]]))*DPR
     return az, el  # Note: az and el in degrees.
 
 def setVm(vmag, az, el):
+    # Note: az and el in radians.
     vx = vmag*cos(el)*cos(az)
     vy = vmag*cos(el)*sin(az)
     vz = vmag*sin(el)
@@ -309,7 +330,7 @@ def setVm(vmag, az, el):
     return Vm
 
 def Vclose(Vt, Vm, Ulos, collision=False):
-    # Note:  Closing velocity is defined as -d(Rlos)/dt.
+    # Note: Closing velocity is defined as -d(Rlos)/dt.
     if collision == True:
         # Calculate collision closing velocity (see calcVcTgo).
         vt = la.norm(Vt)
@@ -324,7 +345,7 @@ def Vclose(Vt, Vm, Ulos, collision=False):
     return Vc
  
 def timeToGo(Rlos, Vt, Vm):
-    # Note:  Uses collision closing velocity (see calcVcTgo).
+    # Note: Uses collision closing velocity (see calcVcTgo).
     vcc = la.norm(Vclose(Vt, Vm, Uvec(Rlos), True))
     tgo = la.norm(Rlos)/vcc
     return tgo
@@ -377,7 +398,7 @@ def ZEMn(Rlos, Vtm, tgo):
     return ZEMn
 
 def Wlos(Vt, Vm, Rlos, Ulos):
-    # Note:  Following expressions for calculating Wlos
+    # Note: Following expressions for calculating Wlos
     #
     Vnrm = Vrel(Vt, Vm) - Vclose(Vt, Vm, Ulos)
     Wlos = np.cross(-Vnrm, Ulos)/la.norm(Rlos)
@@ -516,22 +537,22 @@ def Atgt(UWt, Vt, n):
     """
     if n != 0.0:
         magVt = la.norm(Vt)
-        # Calculate lift g's loss due to pitch angle
+        # Calculate lift g's loss due to pitch angle.
         theta = pitchAngle(Vt)
         loss  = sin(theta)
-        # Calculate target az and el in degrees
+        # Calculate target az and el in degrees.
         taz, tel = az_el_of_V(Vt)
-        # Set target body frame rotation axis
+        # Set target body frame rotation axis.
         if abs(np.dot(UWt,Uyi)) < 0.0001:
             UWtb = -UWt  # +yawing about -zb axis
         else:
             UWtb = UWt   # +pitching about +zb axis 
-        # Rotate inertial Vt into target body frame
+        # Rotate inertial Vt into target body frame.
         Mbi = Mrot(taz*RPD, tel*RPD, 0.0)
         Vtb = np.matmul(Mbi, Vt)
-        # Calculate inertial acceleration in target body frame
+        # Calculate inertial acceleration in target body frame.
         Atb = np.cross((((n-loss)*g)/magVt)*UWtb, Vtb.flatten())
-        # Rotate inertial accelaration into inertial space frame
+        # Rotate inertial acceleration into inertial space frame.
         At = np.matmul(Mbi.transpose(), Atb)
     else:
         At = np.array([0.0, 0.0, 0.0])
@@ -546,9 +567,9 @@ def bankAngle(At, Vt):
     UVt = Uvec(Vt)
     # Calculate turning acceleration normal to Vt.
     Atn = At - np.dot(At, UVt)*UVt
-    # Calculate target az and el in degrees
+    # Calculate target az and el in degrees.
     taz, tel = az_el_of_V(Vt)
-    # Rotate inertial Atn into target body frame
+    # Rotate inertial Atn into target body frame.
     Mbi = Mrot(taz*RPD, tel*RPD, 0.0)
     Atb = np.matmul(Mbi, Atn)
     # Only use Y component of turning acceleration normal.
@@ -567,7 +588,7 @@ S     = np.zeros(nSvar)  # state variables
 dS    = np.zeros(nSvar)  # state derivatives
 
 def setS(S, Vt, Pt, Vm, Pm):
-    # Note: S[0] is t (time)
+    # Note: S[0] is t (time).
     S[1]  = Vt[0]
     S[2]  = Vt[1]
     S[3]  = Vt[2]
@@ -599,7 +620,7 @@ def getS(S):
     return Vt, Pt, Vm, Pm
 
 def setSdot(Sdot, At, Vt, Am, Vm):
-    # Note: Sdot[0] is dt (1.0)
+    # Note: Sdot[0] is dt (1.0).
     Sdot[1]  = At[0]
     Sdot[2]  = At[1]
     Sdot[3]  = At[2]
@@ -631,12 +652,14 @@ def getSdot(Sdot):
     return At, Vt, Am, Vm
 
 def dotS2(dS, At, Vt, Amcmd, Vm):
-    # Note: Ammax is global
+    # Note: Ammax is global.
+    global Ammax
     dS = setSdot(dS, At, Vt, Amsla(Amcmd, Ammax), Vm)
     return dS
 
 def dotS1(dS, Ptm, Vt, Vm):
-    # Note: UWt, Nt and Nm are global
+    # Note: UWt, Nt and Nm are global.
+    global UWt, Nt, Nm
     At = Atgt(UWt ,Vt, Nt)
     dS = dotS2(dS, At, Vt, Amslc(Ptm, Vt, At, Vm, Nm), Vm)
     return dS
@@ -655,7 +678,7 @@ def dotS(n, S):
     Returns
     -------
     dS : float n-Vector
-         Computed derivatives of state vector variables (i.e, dS/dt).
+         Computed derivatives of state vector variables (i.e., dS/dt).
          
     """
     dS    = np.zeros(n)
@@ -703,36 +726,37 @@ N_TIME = N_STEP*T_STEP
 
 # Create simulation data collection arrays for plotting.
 
-nSamples = int(ceil(T_STOP/N_TIME)) + 1
+nSamples   = int(ceil(T_STOP/N_TIME)) + 1
+nSamplesp1 = nSamples + 1  # add 1 for possible overflow.
     
 if PLOT_DATA or PRINT_TXYZ:
-    Time  = np.zeros(nSamples+1)  # simulation time
-    Ptx   = np.zeros(nSamples+1)  # target position x
-    Pty   = np.zeros(nSamples+1)  # target position y
-    Ptz   = np.zeros(nSamples+1)  # target position z
-    Vtx   = np.zeros(nSamples+1)  # target velocity x
-    Vty   = np.zeros(nSamples+1)  # target velocity y
-    Vtz   = np.zeros(nSamples+1)  # target velocity z
-    Atx   = np.zeros(nSamples+1)  # target acceleration x
-    Aty   = np.zeros(nSamples+1)  # target acceleration y
-    Atz   = np.zeros(nSamples+1)  # target acceleration z
-    Pmx   = np.zeros(nSamples+1)  # missile position x
-    Pmy   = np.zeros(nSamples+1)  # missile position y
-    Pmz   = np.zeros(nSamples+1)  # missile position z
-    Vmx   = np.zeros(nSamples+1)  # missile velocity x
-    Vmy   = np.zeros(nSamples+1)  # missile velocity y
-    Vmz   = np.zeros(nSamples+1)  # missile velocity z
-    Amx   = np.zeros(nSamples+1)  # missile acceleration x
-    Amy   = np.zeros(nSamples+1)  # missile acceleration y
-    Amz   = np.zeros(nSamples+1)  # missile acceleration z
-    Dcls  = np.zeros(nSamples+1)  # Closest approach distance
-    LOSd  = np.zeros(nSamples+1)  # LOS rate in (deg/sec)
-    VELc  = np.zeros(nSamples+1)  # Closing velocity (meters/sec)
-    Acmg  = np.zeros(nSamples+1)  # Missile acceleration in g's
-    Velm  = np.zeros(nSamples+1)  # Missile velocity magnitude
-    ZEMd  = np.zeros(nSamples+1)  # Zero Effort Miss distance
-    Thoff = np.zeros(nSamples+1)  # Target horiz. offset angle sines
-    Tvoff = np.zeros(nSamples+1)  # Target vert. offset angle sines
+    Time  = np.zeros(nSamplesp1)  # simulation time
+    Ptx   = np.zeros(nSamplesp1)  # target position x
+    Pty   = np.zeros(nSamplesp1)  # target position y
+    Ptz   = np.zeros(nSamplesp1)  # target position z
+    Vtx   = np.zeros(nSamplesp1)  # target velocity x
+    Vty   = np.zeros(nSamplesp1)  # target velocity y
+    Vtz   = np.zeros(nSamplesp1)  # target velocity z
+    Atx   = np.zeros(nSamplesp1)  # target acceleration x
+    Aty   = np.zeros(nSamplesp1)  # target acceleration y
+    Atz   = np.zeros(nSamplesp1)  # target acceleration z
+    Pmx   = np.zeros(nSamplesp1)  # missile position x
+    Pmy   = np.zeros(nSamplesp1)  # missile position y
+    Pmz   = np.zeros(nSamplesp1)  # missile position z
+    Vmx   = np.zeros(nSamplesp1)  # missile velocity x
+    Vmy   = np.zeros(nSamplesp1)  # missile velocity y
+    Vmz   = np.zeros(nSamplesp1)  # missile velocity z
+    Amx   = np.zeros(nSamplesp1)  # missile acceleration x
+    Amy   = np.zeros(nSamplesp1)  # missile acceleration y
+    Amz   = np.zeros(nSamplesp1)  # missile acceleration z
+    Dcls  = np.zeros(nSamplesp1)  # Closest approach distance
+    LOSd  = np.zeros(nSamplesp1)  # LOS rate in (deg/sec)
+    VELc  = np.zeros(nSamplesp1)  # Closing velocity (meters/sec)
+    Acmg  = np.zeros(nSamplesp1)  # Missile acceleration in g's
+    Velm  = np.zeros(nSamplesp1)  # Missile velocity magnitude
+    ZEMd  = np.zeros(nSamplesp1)  # Zero Effort Miss distance
+    Thoff = np.zeros(nSamplesp1)  # Target horiz. offset angle sines
+    Tvoff = np.zeros(nSamplesp1)  # Target vert. offset angle sines
     
 
 def collectData(i, t, S):
