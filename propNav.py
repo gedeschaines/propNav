@@ -754,7 +754,9 @@ if PLOT_DATA or PRINT_TXYZ:
     Dcls  = np.zeros(nSamplesp1)  # Closest approach distance
     LOSd  = np.zeros(nSamplesp1)  # LOS rate in (deg/sec)
     VELc  = np.zeros(nSamplesp1)  # Closing velocity (meters/sec)
+    Atg   = np.zeros(nSamplesp1)  # Target acceleration in g's
     Acmg  = np.zeros(nSamplesp1)  # Missile acceleration in g's
+    Velt  = np.zeros(nSamplesp1)  # Target velocity magnitude
     Velm  = np.zeros(nSamplesp1)  # Missile velocity magnitude
     ZEMd  = np.zeros(nSamplesp1)  # Zero Effort Miss distance
     Thoff = np.zeros(nSamplesp1)  # Target horiz. offset angle sines
@@ -875,7 +877,9 @@ def collectData(i, t, S):
         Dcls[i]  = dcls
         LOSd[i]  = losr*DPR
         VELc[i]  = vcls
+        Atg[i]   = la.norm(dVt)/g
         Acmg[i]  = acmg
+        Velt[i]  = la.norm(Vt)
         Velm[i]  = la.norm(Vm)
         ZEMd[i]  = zemd
         Thoff[i] = sin(horiz*RPD)
@@ -954,6 +958,7 @@ if __name__ == "__main__":
               (Vt0[0], Vt0[1], Vt0[2]))
         print("Missile initial position: [%9.2f, %9.2f, %9.2f]" % 
               (Pm0[0], Pm0[1], Pm0[2]))
+        print("Target velocity magnitude:    %9.3f" % magVt)
         print("Missile velocity magnitude:   %9.3f" % magVm)
         print("Estimated time-to-intercept:  %9.5f" % tint)
         print("Estimated target position:  [%9.2f, %9.2f, %9.2f]" % 
@@ -1213,33 +1218,37 @@ if __name__ == "__main__":
                      np.array([Pmz[istop],Ptz[istop]]), 'oc')
             plt.legend(('Target','Missile','Missed'), loc='upper left')
         
-        ## Figure 6 - Missile velocity magnitude vs time of flight
+        ## Figure 6 - Msl/Tgt velocity magnitude vs time of flight
         ##            up to point just before flight termination.
         ##            Note; This is a constant velocity missile.
         figures.append(plt.figure(6, figsize=(6,3), dpi=80))
-        text = "Missile velocity magnitude profile ({0}, N={1}, At={2})"\
+        text = "Msl/Tgt velocity magnitude profiles ({0}, N={1}, At={2})"\
             .format(PN_LAWS[PNAV], int(Nm), int(Nt))
         plt.title(text)
         plt.xlabel('Time (sec)')
         plt.ylabel('Velocity (meters/sec)')
         plt.xlim([0.0, T_STOP])
-        plt.ylim([Velm[0]-5, ceil(max(Velm[0:istop]))+5])
+        plt.ylim([Velt[0]-10, ceil(max(Velm[0:istop]))+10])
         plt.grid()
-        plt.plot(Time[0:istop], Velm[0:istop], '-k')
+        plt.plot(Time[0:istop], Velm[0:istop], '-b')
+        plt.plot(Time[0:istop], Velt[0:istop], '-r')
+        plt.legend(('Missile','Target'), loc='lower right')
         
-        ## Figure 7 - Missile acceleration vs time of flight up
+        ## Figure 7 - Msl/Tgt acceleration vs time of flight up
         ##            to point just before flight termination.
         figures.append(plt.figure(7, figsize=(6,3), dpi=80))
-        text = "Missile acceleration profile ({0}, N={1}, At={2})"\
+        text = "Msl/Tgt acceleration profiles ({0}, N={1}, At={2})"\
             .format(PN_LAWS[PNAV], int(Nm), int(Nt))
         plt.title(text)
         plt.xlabel('Time (sec)')
         plt.ylabel('Acceleration (g)')
         plt.xlim([0.0, T_STOP])
-        plt.ylim([floor((min(Acmg[0:istop])-Gmmax[MSL]/2)*10.0)/10.0,
-                   ceil((max(Acmg[0:istop])+Gmmax[MSL]/2)*10.0)/10.0])
+        plt.ylim([floor((min([min(Acmg[0:istop]),min(Atg[0:istop])])-Gmmax[MSL]/2)*10.0)/10.0,
+                   ceil((max([max(Acmg[0:istop]),max(Atg[0:istop])])+Gmmax[MSL]/2)*10.0)/10.0])
         plt.grid()
-        plt.plot(Time[0:istop], Acmg[0:istop], ',-k')
+        plt.plot(Time[0:istop], Acmg[0:istop], ',-b')
+        plt.plot(Time[0:istop], Atg[0:istop], ',-r')
+        plt.legend(('Missile','Target'), loc='lower right')
         
         ## Figure 8 - Line-of-Sight rate vs time of flight up
         ##            to point just before flight termination.
