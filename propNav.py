@@ -194,6 +194,8 @@ else:
     
 # Define target turning/climbing rotation axis unit vector.
 
+global UWt
+
 if MSL == SAM:
     UWt = Uzi  # for level turn in XY plane
     #UWt = np.array([-0.2418, 0.2418, 0.9397])  # for diving turn
