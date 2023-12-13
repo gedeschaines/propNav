@@ -7,11 +7,13 @@ ____________
   Animated GIF from threeD rendering for TXYZ.OUT.1243.
  </p>
 
-A 3-DOF point mass kinematic model of an ideal proportional navigation guidance missile written entirely in Python 3; dependent upon only two readily available modules - Numpy and Matplotlib.
+A 3-DOF point mass kinematic model of an ideal proportional navigation guidance missile written entirely in Python 3; dependent upon only two readily available modules - NumPy and Matplotlib.
 
 ## Overview ##
 
 The **propNav** program was refactored from a Mathcad variant developed in the mid to late 1990's as a tool to perform rudimentary evaluations of surface to air missile (SAM) engagement capabilities against likely targets. During that time, a high fidelity 6-DOF missile simulation was utilized to perform detailed engineering analysis of candidate SAM performance in specific target engagement scenarios. However, when evaluating performance envelopes for multiple engagement scenarios requiring hundreds of run cases, a 3-DOF was easier to setup, and used much less computing resources and time than the 6-DOF. Of course, there was a known and acceptable loss of accuracy when employing a 3-DOF in this manner.
+
+Also included in this repository are the components of **pyThreeD**, a Python 3 variant of the X11/C **[threeD](https://github.com/gedeschaines/threeD)** program. As with **propNav**, this Python 3 program only requires the NumPy and Matplotlib modules.
 
 ## Repository Structure ##
 
@@ -20,14 +22,24 @@ The repository main directory contains this README file, plain text disclaimer f
 + **propNav.py** - Python script for 3-DOF model
 + **RK4_solver.py** - Python script for Runge-Kutta 4th order ODE solver class
 
+The main directory also contains Python 3 script files which comprise **pyThreeD**, a Python 3 variant of the X11/C **threeD** program.
+
++ pyThreeD.py - Python script for **pyThreeD** main routine refactored from [threeD.c](https://github.com/gedeschaines/threeD/blob/master/src/threeD.c) source file
++ pyThreeD.ipynb - Jupyter notebook implementation of pyThreeD.py
++ draw3D.py - Faceted shape 3D rendering routines refactored from [draw3D.c](https://github.com/gedeschaines/threeD/blob/master/src/draw3D.c) source file
++ pqueLib.py - Priority queue routines refactored from [pqueLib.c](https://github.com/gedeschaines/threeD/blob/master/src/pqueLib.c) source file
++ clipLib.py - Polygon clipping routines refactored from [clipLib.c](https://github.com/gedeschaines/threeD/blob/master/src/clipLib.c) source file
+
 The contents of each subdirectory are as follows:
 
++ ./dat - Polygon data files for threeD ground plane, missile and target faceted shapes
 + ./img - Figure 12 3D plot from **propNav**  SAM case 1234, animated GIF file created with **threeD** from ./out/TXYZ.OUT.1234 file.
 + ./out - TXYZ.OUT trajectory data files written by **propNav** for sample missile/target engagement cases (see "Sample Cases" section below).
++ ./util - Bash shell scripts to convert sequence of PNG images to animated GIF or MP4 video files.
 
 ## Execution Prerequisites ##
 
-Latest development effort for the **propNav** program has been with Anaconda 3 Python versions 3.7.4 and 3.9.18 on a Windows 10 Pro system using the following Conda packages.
+Latest development effort for **propNav** and **pyThreeD** programs has been with Anaconda 3 Python versions 3.7.4 and 3.9.18 on a Windows 10 Pro system using the following Conda packages.
 
  <p align="center">Versions of requisite modules associated with Python version
   <table rows="6" cols="3">
@@ -41,7 +53,7 @@ Latest development effort for the **propNav** program has been with Anaconda 3 P
     <th colspan="1" align="center">3.9.18</th>
    </tr>
    <tr>
-    <td align="left">Numpy</td>
+    <td align="left">NumPy</td>
     <td align="center">1.16.5</td>
     <td align="center">1.24.4</td>
    </tr>
@@ -49,6 +61,73 @@ Latest development effort for the **propNav** program has been with Anaconda 3 P
     <td align="left">Matplotlib</td>
     <td align="center">3.1.1</td>
     <td align="center">3.8.0</td>
+   </tr>
+  </table>
+ </p>
+
+Both **propNav** and **pyThreeD** have been successfully run with platform OS Python distributions using Python, Matplotlib and NumPy versions presented in the following table.
+
+ <p align="center"> Platform OS and Python versions supporting propNav and pyThreeD
+  <table rows="9" cols="5">
+   <tr>
+    <th colspan="2" align="left"> </th>
+    <th colspan="3" align="left">Versions</th>
+   </tr>
+   <tr>
+    <th colspan="1" align="left">Platform OS</th>
+    <th colspan="1" align="left">Python Distribution</th>
+    <th colspan="1" align="center">Python</th>
+    <th colspan="1" align="center">NumPy</th>
+    <th colspan="1" align="center">Matplotlib</th>
+   </tr>
+   <tr>
+    <td align="left">Windows 10  Pro</td>
+    <td align="left">Anaconda 3</td>
+    <td align="center">3.6.12</th>
+    <td align="center">1.19.5</td>
+    <td align="center">3.3.4</td>
+   </tr>
+   <tr>
+    <td align="left">Windows 10  Pro</td>
+    <td align="left">Anaconda 3</td>
+    <td align="center">3.7.4</th>
+    <td  align="center">1.16.5</td>
+    <td align="center">3.1.1</td>
+   </tr>
+   <tr>
+    <td align="left">Windows 10  Pro</td>
+    <td align="left">Anaconda 3</td>
+    <td align="center">3.9.18</th>
+    <td  align="center">1.24.4</td>
+    <td align="center">3.8.0</td>
+   </tr>
+   <tr>
+    <td align="left">Windows 10  Pro</td>
+    <td align="left">Anaconda 3</td>
+    <td align="center">3.11.5</th>
+    <td  align="center">1.24.3</td>
+    <td align="center">3.7.2</td>
+   </tr>
+   <tr>
+    <td align="left">Windows 10  Pro</td>
+    <td align="left">Python Org</td>
+    <td align="center">3.9.13</th>
+    <td align="center">1.20.1</td>
+    <td align="center">3.8.2</td>
+   </tr>
+   <tr>
+    <td align="left">Windows 10  Pro</td>
+    <td align="left">MinGW64</td>
+    <td align="center">3.8.7</th>
+    <td align="center">1.20.1</td>
+    <td align="center">3.3.4</td>
+   </tr>
+   <tr>
+    <td align="left">Windows 10  Pro</td>
+    <td align="left">WSL2 Ubuntu 20.04</td>
+    <td align="center">3.8.10</th>
+    <td align="center">1.17.4</td>
+    <td align="center">3.1.2</td>
    </tr>
   </table>
  </p>
@@ -66,9 +145,13 @@ The first figure is a plot depicting closing distances at time-of-intercept and 
   Figure 12 for engagement saved in TXYZ.OUT.1243
  </p>
 
-If the "PRINT_TXYZ" flag in the propNav.py file is set to true, then a trajectory data file of the name "TXYZ.OUT.####" will be written to the ./out subdirectory. This trajectory data file can be read and rendered by the **[threeD](https://github.com/gedeschaines/threeD)** program. Follow steps delineated in the "Execution Overview" section of the associated [README](https://github.com/gedeschaines/threeD#readme) file. The animated GIF displayed in the header of this document was rendered by **threeD**.
+If the "PRINT_TXYZ" flag in the propNav.py file is set to true, then a trajectory data file of the name "TXYZ.OUT.####" will be written to the ./out subdirectory. This trajectory data file can be read and rendered by the **pyThreeD** and **threeD** programs.
 
-Although **propNav** can be run from a command terminal, users may find it easier from within the Spyder IDE application. Doing so allows code modification prior to program execution, such as changing missile or target initial conditions, or selecting different processing options. Additionally, if a Spyder IDE version 4 or greater is utilized, the twelve plot figures can be "inlined" within the Spyder workspace Plot Pane instead of cascaded across the desktop. Unfortunately "inlined" plots are not interactive. This primarily affects the 3D plot presented in figure 12. Instead of being able to rotate the plot for best viewing angle, the "elev" and "azim" arguments in figure 12's "ax.view_init()" procedure call have to be modified and the program rerun.
+To utilize **pyThreeD** from a command terminal, invoke **python ThreeD.py *CaseId \[0|1]* ** from within the ./propNav directory to execute pyThreeD.py. The *CaseId* argument corresponds to ""####"" dot-appended to a TXYZ.OUT file, and *\[0|1]* option for saving rendered image as PNG files (0=False, 1=True) . If using **threeD**, follow steps delineated in the "Execution Overview" section of the associated [README](https://github.com/gedeschaines/threeD#readme) file. The animated GIF displayed in the header of this document was rendered by **threeD**.
+
+Although **propNav** can be run from a command terminal, users may find it easier from within the Spyder IDE application. Doing so allows code modification prior to program execution, such as changing missile or target initial conditions, or selecting different processing options. Additionally, if a Spyder IDE version 4 or greater is utilized, the twelve plot figures can be "inlined" within the Spyder workspace Plot Pane instead of cascaded across the desktop. Unfortunately "inlined" plots are not interactive. This primarily affects the 3D plot presented in figure 12. Instead of being able to rotate the plot for best viewing angle, the "elev" and "azim" arguments in figure 12's "ax.view_init()" procedure call have to be modified and the program rerun. It's best to click on the "X" (or press Ctrl+Shift+W) with the Plots Pane selected to remove all plots before rerunning propNav.py.
+
+To run **pyThreeD** from within the Spyder IDE application, a custom run configuration must be assigned to the pyThreeD.py file in which "Execute in an external system system terminal" is selected and *pyThreeD.py CaseId \[0|1]* is specified for "Command line options" within the "Console" section of the "Run configuration per file" dialog box.
 
 ## Sample Cases ##
 
@@ -108,4 +191,8 @@ Although references [3] through [5] were not consulted during development of the
 
 ## Epilogue ##
 
-There are numerous YouTube videos presenting 3-DOF kinematic and 6-DOF dynamic missile models with implementations of simplified to complete proportional navigation guidance control loops. In most cases the models are built using MATLAB and Simulink, which tends to hide technical details within layers of widget abstraction. The purpose of this rudimentary Python model is to provide readily accessible code incorporating fundamental simulation features  without depending on black box routines hiding implementation details. The proportional navigation formulations based on engagement kinematics,  and integration of equations of motion state variable derivates are obvious, even to the most casual observer.
+There are numerous YouTube videos presenting 3-DOF kinematic and 6-DOF dynamic missile models with implementations of simplified to complete proportional navigation guidance control loops. In most cases the models are built using MATLAB and Simulink, which tends to hide technical details within layers of widget abstraction. The purpose of this rudimentary Python model is to provide readily accessible code incorporating fundamental simulation features without depending on black box routines hiding implementation details. The proportional navigation formulations based on engagement kinematics, and integration of equations of motion state variable derivates are obvious, even to the most casual observer.
+
+The Python 3 **pyThreeD** program was developed as an alternative to the X11/C **threeD** program for those not familiar with X servers and Cygwin, or not inclined to expend effort installing either on a Windows platform. The Matplotlib module was selected to display 3D rendering instead of a more capable and efficient graphics library, such as OpenGL, in order to utilize the draw3D module interactively from within a Jupyter notebook; as demonstrated with the provided pyThreeD.ipynb notebook file. Neither of these programs are representative of modern 3D rendering techniques with current graphics hardware and drivers, but what they lack in rendering speed and image quality is counter-balanced by their simplicity and universality. The original X11/C threeD program is nearly 25 years old, yet still compatible with the latest X11 servers. It's possible the Python pyThreeD variant may share the same longevity.
+
+I developed the X11/C threeD variant on a dual boot Toshiba Satellite 430CDT laptop with Windows 98 and RedHat Linux 5.1 in 1998. By 2001 it was installed and running on a dual boot Dell Precision WorkStation 530 with Windows 2000 and RedHat Linux 7.1, and by 2004 on a Sony Vaio laptop with Windows XP and Cygwin 1.5.

@@ -2,6 +2,8 @@ __pycache__/
 tmp/
 out/TXYZ.OUT.*
 !out/TXYZ.OUT.124*
+Ximg/
+.ipynb_checkpoints
 .spyproject
 *.pyc
 *\~
