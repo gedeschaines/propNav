@@ -68,10 +68,10 @@ Latest development effort for **propNav** and **pyThreeD** programs has been wit
 Both **propNav** and **pyThreeD** have been successfully run with platform OS Python distributions using Python, Matplotlib and NumPy versions presented in the following table.
 
  <p align="center"> Platform OS and Python versions supporting propNav and pyThreeD
-  <table rows="9" cols="5">
+  <table rows="10" cols="5">
    <tr>
     <th colspan="2" align="left"> </th>
-    <th colspan="3" align="left">Versions</th>
+    <th colspan="3" align="Center">Versions</th>
    </tr>
    <tr>
     <th colspan="1" align="left">Platform OS</th>
@@ -81,49 +81,56 @@ Both **propNav** and **pyThreeD** have been successfully run with platform OS Py
     <th colspan="1" align="center">Matplotlib</th>
    </tr>
    <tr>
-    <td align="left">Windows 10  Pro</td>
-    <td align="left">Anaconda 3</td>
+    <td align="left">Windows 10.0.19045 Pro</td>
+    <td align="left">Anaconda 3 2019.10</td>
     <td align="center">3.6.12</th>
     <td align="center">1.19.5</td>
     <td align="center">3.3.4</td>
    </tr>
    <tr>
-    <td align="left">Windows 10  Pro</td>
-    <td align="left">Anaconda 3</td>
+    <td align="left">Windows 10.0.19045 Pro</td>
+    <td align="left">Anaconda 3 2019.10</td>
     <td align="center">3.7.4</th>
     <td  align="center">1.16.5</td>
     <td align="center">3.1.1</td>
    </tr>
    <tr>
-    <td align="left">Windows 10  Pro</td>
-    <td align="left">Anaconda 3</td>
+    <td align="left">Windows 10.0.19045 Pro</td>
+    <td align="left">Anaconda 3 2023.09-0</td>
     <td align="center">3.9.18</th>
     <td  align="center">1.24.4</td>
     <td align="center">3.8.0</td>
    </tr>
    <tr>
-    <td align="left">Windows 10  Pro</td>
-    <td align="left">Anaconda 3</td>
+    <td align="left">Windows 10.0.19045 Pro</td>
+    <td align="left">Anaconda 3 2023.09-0< 2023.09-0/td>
     <td align="center">3.11.5</th>
     <td  align="center">1.24.3</td>
     <td align="center">3.7.2</td>
    </tr>
    <tr>
-    <td align="left">Windows 10  Pro</td>
-    <td align="left">Python Org</td>
+    <td align="left">Windows 10.0.19045 Pro</td>
+    <td align="left">Python Org PSF 3.9.3568.0</td>
     <td align="center">3.9.13</th>
     <td align="center">1.20.1</td>
     <td align="center">3.8.2</td>
    </tr>
    <tr>
-    <td align="left">Windows 10  Pro</td>
-    <td align="left">MinGW64</td>
+    <td align="left">Windows 10.0.19045 Pro</td>
+    <td align="left">MinGW64 3.4.9</td>
     <td align="center">3.8.7</th>
     <td align="center">1.20.1</td>
     <td align="center">3.3.4</td>
    </tr>
    <tr>
-    <td align="left">Windows 10  Pro</td>
+    <td align="left">Windows 10.0.19045 Pro</td>
+    <td align="left">Cygwin64 3.4.10 (Only Jupyter notebook worked)</td>
+    <td align="center">3.9.16</th>
+    <td align="center">1.26.1</td>
+    <td align="center">3.5.1</td>
+   </tr>
+   <tr>
+    <td align="left">Windows 10.0.19045 Pro</td>
     <td align="left">WSL2 Ubuntu 20.04</td>
     <td align="center">3.8.10</th>
     <td align="center">1.17.4</td>
