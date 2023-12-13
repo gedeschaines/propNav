@@ -1059,7 +1059,7 @@ class Draw3D:
                 line = self.lfnt.readline()
                 continue           
             tsec = float(words[0])
-            ktot = int(words[1])
+            ktot = int(words[1]) 
             XM   = float(words[2])
             YM   = float(words[3])
             ZM   = float(words[4])
@@ -1179,8 +1179,8 @@ class Draw3D:
                 UXTM = DXTM/RTM
                 UYTM = DYTM/RTM
                 UZTM = DZTM/RTM
-            else:
-                # Use missile velocity direction vector
+            elif ktot > -1:
+                # Use last valid missile velocity direction vector.
                 DXTM = XM - last_XM
                 DYTM = YM - last_YM
                 DZTM = ZM - last_ZM
