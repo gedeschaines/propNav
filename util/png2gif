@@ -30,7 +30,7 @@ done
 
 # Calculate image delay time in hundredths of a second.
 
-FPS=`grep "img_FPS = " ../threeD.py | gawk '{ print gensub(";","",1,$3) }'`
+FPS=`grep "img_FPS = " ../pyThreeD.py | gawk '{ print gensub(";","",1,$3) }'`
 DELAY=`echo "100 $FPS" | gawk '{ print $1/$2 }'`
 
 # Merge all GIF files into the animated gif file.
