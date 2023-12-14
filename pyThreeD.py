@@ -1,4 +1,9 @@
 # -*- coding: utf-8 -*-
+
+# pylint: disable=trailing-whitespace,bad-whitespace,invalid-name
+# pylint: disable=anomalous-backslash-in-string,bad-continuation
+# pylint: disable=multiple-statements,redefined-outer-name,global-statement
+
 """
 FILE:  pyThreeD.py
 DATE:  06 DEC 2023
@@ -27,12 +32,11 @@ except ImportError:
     print("         Suggest installing the SciPy stack.")
     sys.exit()
 
+from draw3D import Draw3D
 
 global fig       # Instantiated matplotlib pyplot figure
 global draw3D    # Instantiated Draw3D object
 global started   # Draw3D.MainLoop method started flag
-
-from draw3D import Draw3D
 
 started = False
 
@@ -49,13 +53,13 @@ def onClick(event):
     #x = event.xdata
     #y = event.ydata
     if not started:
-       started = True
-       draw3D.MainLoop()
-       if draw3D.doneflag:
-           fig.clear()
-           plt.close(fig)
-           sys.exit()
-       started = False
+        started = True
+        draw3D.MainLoop()
+        if draw3D.doneflag:
+            fig.clear()
+            plt.close(fig)
+            sys.exit()
+        started = False
        
 
 if __name__ == "__main__":

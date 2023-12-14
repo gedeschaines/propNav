@@ -1,4 +1,9 @@
 # -*- coding: utf-8 -*-
+
+# pylint: disable=trailing-whitespace,bad-whitespace,invalid-name
+# pylint: disable=anomalous-backslash-in-string,bad-continuation
+# pylint: disable=multiple-statements,redefined-outer-name,global-statement
+
 """
 FILE:  clipLib.py
 DATE:  06 DEC 2023
@@ -18,11 +23,11 @@ Disclaimer:  See DISCLAIMER file.
 
 """
 
+from draw3D import DBG_LVL, Pnt3D
+
 mxvcnt = 32       # maximum vertices in clipped polygon 
 zmin   = 0.1      # minimum z clipping distance
 zmax   = 10000.0  # maximum z clipping distance
-
-from draw3D import DBG_LVL, Pnt3D
 
 
 def edgeCode(edge, a_pt):
@@ -208,8 +213,8 @@ def polyClip(pcnt, vcnt, vlist):
                 cs   = ce
                 if cs >= 0:
                     # Save this point.
-	                jcnt                = jcnt + 1
-	                vlist[pcntp1][jcnt] = pt_S
+                    jcnt                = jcnt + 1
+                    vlist[pcntp1][jcnt] = pt_S
 
         if jcnt > 0:
             # Close polygon.

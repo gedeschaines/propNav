@@ -1,4 +1,9 @@
 # -*- coding: utf-8 -*-
+
+# pylint: disable=trailing-whitespace,bad-whitespace,invalid-name
+# pylint: disable=anomalous-backslash-in-string,bad-continuation
+# pylint: disable=multiple-statements,redefined-outer-name,global-statement
+
 """
 FILE:  pqueLib.py
 DATE:  06 DEC 2023

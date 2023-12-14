@@ -1,4 +1,9 @@
 # -*- coding: utf-8 -*-
+
+# pylint: disable=trailing-whitespace,bad-whitespace,invalid-name
+# pylint: disable=anomalous-backslash-in-string,bad-continuation
+# pylint: disable=multiple-statements,redefined-outer-name,global-statement
+
 """
 FILE:  draw3D.py
 DATE:  06 DEC 2023
@@ -67,6 +72,7 @@ except ImportError:
     print("         Suggest installing the SciPy stack.")
     sys.exit()
 
+
 DBG_LVL = 0
 
 # Draw3D Helper Functions (hold over from threeD.c)
@@ -86,7 +92,7 @@ def lmin(x1, x2):
 def lmax(x1, x2):
     return max(x1, x2)
 
-# Draw3D Data Structures
+# Draw3D Data Structures (using crude implementation of C struct)
         
 class Pnt3D:
     def __init__(self, x=0.0, y=0.0, z=0.0):
@@ -387,7 +393,7 @@ class Draw3D:
         sint = sin(t)
         cosr = cos(r)
         sinr = sin(r)
-
+        
         kctcp   = cost*cosp
         kctsp   = cost*sinp
         kstcp   = sint*cosp
@@ -402,7 +408,7 @@ class Draw3D:
         ksrstsp = sinr*kstsp
         kcrstcp = cosr*kstcp
         kcrstsp = cosr*kstsp
-
+        
         self.dcx1 =  kctcp
         self.dcy1 =  kctsp
         self.dcz1 = -sint
@@ -437,11 +443,11 @@ class Draw3D:
             xd = self.GridPt1[k].X - self.fovpt.X
             yd = self.GridPt1[k].Y - self.fovpt.Y
             zd = self.GridPt1[k].Z - self.fovpt.Z
-            # Rotate coordinated into viewport reference frame and scale.
+            # Rotate coordinated into viewport reference frame.
             xs = self.dcx1*xd + self.dcy1*yd + self.dcz1*zd
             ys = self.dcx2*xd + self.dcy2*yd + self.dcz2*zd
             zs = self.dcx3*xd + self.dcy3*yd + self.dcz3*zd
-            xs = xs
+            # Apply FOV scaling.
             ys = ys*self.sfacyAR  # account for square clipping frustum base of fovs pixels
             zs = zs*self.sfacz
             # Save scaled viewport coordinates.
@@ -473,11 +479,11 @@ class Draw3D:
             xd = aPolRec.Pt1.X - self.fovpt.X
             yd = aPolRec.Pt1.Y - self.fovpt.Y
             zd = aPolRec.Pt1.Z - self.fovpt.Z
-            # Rotate coordinates into viewport reference frame and scale.
+            # Rotate coordinates into viewport reference frame.
             xs = self.dcx1*xd + self.dcy1*yd + self.dcz1*zd
             ys = self.dcx2*xd + self.dcy2*yd + self.dcz2*zd
             zs = self.dcx3*xd + self.dcy3*yd + self.dcz3*zd
-            xs = xs
+            # Apply FOV scaling.
             ys = ys*self.sfacyAR  # account for square clipping frustum base of fovs pixels
             zs = zs*self.sfacz
             # Save scaled viewport coordinates.
@@ -501,7 +507,7 @@ class Draw3D:
             ys    = self.dcx2*xd + self.dcy2*yd + self.dcz2*zd
             zs    = self.dcx3*xd + self.dcy3*yd + self.dcz3*zd
             rs    = sqrt(xs*xs + ys*ys + zs*zs)
-            rsmm  = rs*f1K;
+            rsmm  = rs*f1K
             irsmm = lroundd(rsmm)
             anElement = HeapElement(pcode + irsmm, iPol)
             if DBG_LVL > 3:
@@ -544,9 +550,9 @@ class Draw3D:
             xb            = copy(aPolRec.Pt0.X)
             yb            = copy(aPolRec.Pt0.Y)
             zb            = copy(aPolRec.Pt0.Z)
-            aPolRec.Pt1.X = self.dcx1*xb + self.dcx2*yb + self.dcx3*zb + px;
-            aPolRec.Pt1.Y = self.dcy1*xb + self.dcy2*yb + self.dcy3*zb + py;
-            aPolRec.Pt1.Z = self.dcz1*xb + self.dcz2*yb + self.dcz3*zb + pz;
+            aPolRec.Pt1.X = self.dcx1*xb + self.dcx2*yb + self.dcx3*zb + px
+            aPolRec.Pt1.Y = self.dcy1*xb + self.dcy2*yb + self.dcy3*zb + py
+            aPolRec.Pt1.Z = self.dcz1*xb + self.dcz2*yb + self.dcz3*zb + pz
             if DBG_LVL > 3:
                 print("    - vertice :  %f  %f  %f" % \
                                        (aPolRec.Pt1.X,
@@ -623,13 +629,13 @@ class Draw3D:
         n = 0  # initialize number of path vertice.
         
         for k in range(0, numLines):
-
+            
             pcnt = 1
-
+            
             # Calculate x coordinate of un-clipped line.
-            vlist[pcnt][1].X = self.GridPt2[i10].X + k*xd1;
-            vlist[pcnt][2].X = self.GridPt2[i20].X + k*xd2;
-
+            vlist[pcnt][1].X = self.GridPt2[i10].X + k*xd1
+            vlist[pcnt][2].X = self.GridPt2[i20].X + k*xd2
+             
             if not ((vlist[pcnt][1].X <= self.fl) and 
                     (vlist[pcnt][2].X <= self.fl)):
                 # Create un-clipped line.
@@ -639,7 +645,7 @@ class Draw3D:
                 vlist[pcnt][2].Z = self.GridPt2[i20].Z + k*zd2
                 vlist[pcnt][3]   = vlist[pcnt][1]
                 vcnt[pcnt]       = 3
-
+                
                 if DBG_LVL > 4:
                     for i in range(1,vcnt[pcnt]+1):
                         print("DrawGrid3D:  %d %d %f %f %f" % \
@@ -647,10 +653,10 @@ class Draw3D:
                                vlist[pcnt][i].X,
                                vlist[pcnt][i].Y,
                                vlist[pcnt][i].Z))
-
+                
                 # Create clipped line.
                 pcnt = polyClip(pcnt, vcnt, vlist)
-
+                
                 if DBG_LVL > 4:
                     for i in range(1,vcnt[pcnt]+1):
                         print("DrawGrid3D:  %d %d %f %f %f" % \
@@ -658,7 +664,7 @@ class Draw3D:
                                vlist[pcnt][i].X,
                                vlist[pcnt][i].Y,
                                vlist[pcnt][i].Z))
-
+                
                 # Draw clipped line.
                 if vcnt[pcnt] > 2:
                     c = 1  # path code (1:moveto, 2:lineto)
@@ -666,7 +672,7 @@ class Draw3D:
                         xs            = vlist[pcnt][i].X
                         ys            = vlist[pcnt][i].Y/self.sfacyAR
                         zs            = vlist[pcnt][i].Z/self.sfacz
-                        sf            = self.fl/xs;
+                        sf            = self.fl/xs
                         tmpVerts[n,0] = lroundd(sf*ys) + floor(self.fovcx)
                         tmpVerts[n,1] = lroundd(sf*zs) + floor(self.fovcy)
                         tmpCodes[n]   = c
@@ -685,7 +691,7 @@ class Draw3D:
             # No grid lines to draw, make last grid axis path 
             # collection invisible.
             self.GridPathCollections[iaxis-1].set_visible(False)
-
+        
 
     def DrawPoly3D(self, iPol):
         """
@@ -903,23 +909,23 @@ class Draw3D:
         
         self.polcnt = 0
         
-        lfni = open("./dat/grndpoly.dat", "r")
+        lfni = open("./dat/grndpoly.dat", "rt")
         if lfni is not None:
             if DBG_LVL > 0:
                 print("Draw3D:  Loading polygons from file %s" % \
                       ("grndpoly.dat"))
             self.LoadPoly(lfni, "./dat/grndpoly.dat")
             lfni.close()
-    
-        lfni = open("./dat/fwngpoly.dat", "r")
+        
+        lfni = open("./dat/fwngpoly.dat", "rt")
         if lfni is not None:
             if DBG_LVL > 0:
                 print("Draw3D:  Loading polygons from file %s" % \
                       ("fwngpoly.dat"))
             self.LoadPoly(lfni, "./dat/fwngpoly.dat")
             lfni.close()
-
-        lfni = open("./dat/mislpoly.dat", "r")
+        
+        lfni = open("./dat/mislpoly.dat", "rt")
         if lfni is not None:
             if DBG_LVL > 0:
                 print("Draw3D:  Loading polygons from file %s" % \
@@ -960,7 +966,7 @@ class Draw3D:
         Draws trajectory state values.
         """
         for text in self.TextArtists:
-             self.ax.draw_artist(self.TextArtists[text])
+            self.ax.draw_artist(self.TextArtists[text])
 
 
     def onPress(self, event):
@@ -1033,7 +1039,7 @@ class Draw3D:
         if DBG_LVL > 0:
             print("MainLoop:  Opening trajectory file %s" % \
                   (self.txyzFile))
-        self.lfnt = open(self.txyzFile, "r")
+        self.lfnt = open(self.txyzFile, "rt")
 
         # Main processing loop over trajectory data file.
 
@@ -1073,7 +1079,7 @@ class Draw3D:
             # Get missile and target orientation.
             line = self.lfnt.readline().strip()
             if line.find("-9999     -9999") < 0:
-                # Other 6-DOF simulation trajectory output file.                print("********************* HERE ******************")
+                # Other 6-DOF simulation trajectory output file.
                 words = line.split()
                 if len(words) < 6:
                     # Skip this line and process next line.
@@ -1163,7 +1169,7 @@ class Draw3D:
 
             # Move missile polygons.
             if DBG_LVL > 2:
-                print("MainLoop:  Move missile polygons...");
+                print("MainLoop:  Move missile polygons...")
             for i in range(1,self.polcnt+1):
                 if ( abs(self.pollist[i].Typ) == self.poltyp_msl ):
                     self.MovePoly(i, px, py, pz)
@@ -1192,8 +1198,8 @@ class Draw3D:
             if self.align_fov_toward_tgt:
                 # Place fovpt near missile; align fov normal axis with
                 # unit vector from missile to target.
-                self.fovpt.X = XM - fTwo*UXTM;
-                self.fovpt.Y = YM - fTwo*UYTM;
+                self.fovpt.X = XM - fTwo*UXTM
+                self.fovpt.Y = YM - fTwo*UYTM
                 self.fovpt.Z = dmin(ZM - fTwo*UZTM + fHalf, -0.1)  # keep fovpt above ground
                 p = atan2(UYTM, UXTM)  # Yaw    NOTE: Gimbal lock occurs when Pitch is
                 t = asin(-UZTM)        # Pitch        +/- 90 deg as both UXTM and UYTM
@@ -1317,12 +1323,12 @@ class Draw3D:
             # Save figure canvas with rendered image to PNG file.
             if self.imgSave:
                 if ( (tsec+0.005 - last_tsec) >= img_dtsec ):
-                   sbuff = StringIO()
-                   sbuff.write("./Ximg/img_%04hd.png" % (img_count))
-                   img_fname = sbuff.getvalue()
-                   self.fig.savefig(img_fname, format='png')
-                   img_count += 1
-                   last_tsec = tsec
+                    sbuff = StringIO()
+                    sbuff.write("./Ximg/img_%04hd.png" % (img_count))
+                    img_fname = sbuff.getvalue()
+                    self.fig.savefig(img_fname, format='png')
+                    img_count += 1
+                    last_tsec = tsec
 
             # Time delay.
             while True:
