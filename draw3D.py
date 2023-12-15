@@ -959,21 +959,20 @@ class Draw3D:
                                  zorder=self.zorder)
         else:
             self.TextArtists[text].set_text(valstr)
-
-
+        
+    
     def DrawText(self):
         """
         Draws trajectory state values.
         """
         for text in self.TextArtists:
             self.ax.draw_artist(self.TextArtists[text])
-
-
+        
+    
     def onPress(self, event):
         """
-        Keyboard key press handler
+        Keyboard key press handler.
         """
-        #print("Key pressed:", event.key)
         if event.key == 't':
             self.align_fov_toward_tgt = not self.align_fov_toward_tgt
             self.align_fov_toward_msl = False
@@ -1011,9 +1010,12 @@ class Draw3D:
             # Exits MainLoop and closes figure.
             self.quitflag = True
             self.doneflag = True
-    
+        
     
     def MainLoop(self):
+        
+        self.selection = None
+        self.last_selection = None
         
         self.doneflag = False
         self.quitflag = False
@@ -1046,9 +1048,9 @@ class Draw3D:
         line = self.lfnt.readline()
         
         while not ( (line == '') or self.quitflag ):
-        
+            
             cpumsec1 = 1000.0*time.perf_counter()
-
+            
             if self.paused: 
                 self.canvas.flush_events()
                 continue
@@ -1058,7 +1060,7 @@ class Draw3D:
                 last_XM = XM
                 last_YM = YM
                 last_ZM = ZM
-                
+            
             # Get missile and target position.
             words = line.strip().split()
             if len(words) != 8:
@@ -1072,10 +1074,10 @@ class Draw3D:
             XT   = float(words[5])
             YT   = float(words[6])
             ZT   = float(words[7])
-
+            
             if DBG_LVL > 1:
                 print("MainLoop:  Time %8.4f, ktot=%4d" % (tsec, ktot))
-                
+               
             # Get missile and target orientation.
             line = self.lfnt.readline().strip()
             if line.find("-9999     -9999") < 0:
@@ -1104,12 +1106,12 @@ class Draw3D:
                 PHT  = float(words[5])
                 THT  = float(words[6])
                 PST  = float(words[7])
-
+            
             # skip decoy position and radiance.
             if ktot > 0:
                 for itot in range(0, ktot):
                     line = self.lfnt.readline()
-                
+            
             # Get target position components. 
             px = XT
             py = YT
@@ -1122,7 +1124,7 @@ class Draw3D:
             if DBG_LVL > 2:
                 print("  tgt - px,py,pz,p,t,r = %f %f %f %f %f %f" % \
                       (px, py, pz, p, t, r))
-
+            
             # Compute polygon rotation transformation matrix.
             if DBG_LVL > 2:
                 print("MainLoop:  Make target polygon transformation matrix...")
@@ -1134,14 +1136,14 @@ class Draw3D:
                       (self.dcx2, self.dcy2, self.dcz2))
                 print("           %f  %f  %f" % \
                       (self.dcx3, self.dcy3, self.dcz3))
-
+            
             # Move target polygons.
             if DBG_LVL > 2:
                 print("MainLoop:  Move target polygons...")
             for i in range(1,self.polcnt+1):
                 if (abs(self.pollist[i].Typ) == self.poltyp_tgt):
                     self.MovePoly(i, px, py, pz)
-            
+           
             # Get missile position components.
             px = XM
             py = YM
@@ -1166,7 +1168,7 @@ class Draw3D:
                       (self.dcx2, self.dcy2, self.dcz2))
                 print("           %f  %f  %f" % \
                       (self.dcx3, self.dcy3, self.dcz3))
-
+            
             # Move missile polygons.
             if DBG_LVL > 2:
                 print("MainLoop:  Move missile polygons...")
@@ -1221,7 +1223,7 @@ class Draw3D:
                 self.fovpt.Z = dmin(ZM - 1.5, -0.1)  # keep fovpt above ground
                 t = fZero
                 r = fZero
-                
+            
             # Compute FOV rotation transformation matrix.
             if DBG_LVL > 2:
                 print("MainLoop:  Make field-of-view rotation matrix...")
@@ -1233,12 +1235,12 @@ class Draw3D:
                       (self.dcx2, self.dcy2, self.dcz2))
                 print("           %f  %f  %f" % \
                       (self.dcx3, self.dcy3, self.dcz3))
-
+            
             # Transform ground plane polygon into viewport.
             if DBG_LVL > 2:
                 print("MainLoop:  Transform ground plane polygon...")
             self.XfrmPoly(1)
-
+            
             # Transform ground plane grid into viewport.
             if DBG_LVL > 2:
                 print("MainLoop:  Transform ground plane grid...")
@@ -1250,7 +1252,7 @@ class Draw3D:
             self.polPQ.clear()
             for i in range(2,self.polcnt+1):
                 self.XfrmPoly(i)
-
+            
             # Restore canvas, reset artist drawing zorder, and
             # make all previously drawn polygons invisible.
             self.canvas.restore_region(self.bckgrnd)
@@ -1258,24 +1260,24 @@ class Draw3D:
             for i in range(1, self.polcnt+1):
                 if not (self.pollist[i].Poly is None):
                     self.pollist[i].Poly.set(visible=False)
-  
+            
             # Draw ground plane polygon.
             if DBG_LVL > 2:
                 print("MainLoop:  Draw ground plane polygon...")
-                
+            
             self.DrawPoly3D(1)
             
             # Draw ground plane grid.
             if DBG_LVL > 2:
                 print("MainLoop:  Draw ground plane grid...")
-
+            
             self.DrawGrid3D(1)
             self.DrawGrid3D(2)
             
             # Draw target and missile shape polygons.
             if DBG_LVL > 2:
                 print("MainLoop:  Draw target and missile polygons...")
-                   
+                  
             while not self.polPQ.isEmpty():
                 anElement = self.polPQ.priorityDeq()
                 if DBG_LVL > 3:
@@ -1294,7 +1296,7 @@ class Draw3D:
                 # TXYZ true time record.
                 self.AnnotateText('time', tsec)
                 true_tsec = tsec
-    
+            
             self.zorder = 1000.0
             self.AnnotateText('zoom', self.zoom)
             self.AnnotateText('Xm',  XM)
@@ -1312,9 +1314,14 @@ class Draw3D:
             self.DrawText()
             
             # Update display of rendered image.
+            
             if self.backend[0:2] == 'WX':
                 self.canvas.update()
             elif self.backend[0:2] == 'TK':
+                self.canvas.blit(self.ax.bbox)
+            elif self.backend[0:2] == 'NB':
+                self.canvas.blit(self.ax.bbox)
+            elif self.backend == 'MODULE://IPYMPL.BACKEND_NBAGG':
                 self.canvas.blit(self.ax.bbox)
             else:  # QT or GTK
                 self.canvas.update()
@@ -1329,7 +1336,7 @@ class Draw3D:
                     self.fig.savefig(img_fname, format='png')
                     img_count += 1
                     last_tsec = tsec
-
+            
             # Time delay.
             while True:
                 cpumsec2 = 1000.0*time.perf_counter()
@@ -1338,12 +1345,16 @@ class Draw3D:
             
             # Get next line.
             line = self.lfnt.readline()
-            
+        
         # Quit or Done; flush plot events and close trajectory data file.
         
         if self.backend[0:2] == 'WX':
             self.canvas.update()
         elif self.backend[0:2] == 'TK':
+            self.canvas.blit(self.ax.bbox)
+        elif self.backend[0:2] == 'NB':
+            self.canvas.blit(self.ax.bbox)
+        elif self.backend == 'MODULE://IPYMPL.BACKEND_NBAGG':
             self.canvas.blit(self.ax.bbox)
         else:  # QT or GTK
             self.canvas.update()
@@ -1351,4 +1362,3 @@ class Draw3D:
         
         self.lfnt.close()
         self.lfnt = None
-        
