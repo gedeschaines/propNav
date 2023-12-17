@@ -144,6 +144,7 @@ if __name__ == "__main__":
     print("Press Z key to reset zoom to one.")
     print("Press Up Arrow key to increase zoom.")
     print("Press Down Arrow key to decrease zoom.")
+    print("Press 0 (zero) key to reset animation step delay to zero.")
     print("Press Left Arrow key to slow animation down by 50 msec increments.")
     print("Press Right Arrow key to speed animation up by 50 msec increments.")
     print("Press Space key to toggle pause/unpause.")

@@ -273,6 +273,7 @@ class Draw3D:
         tanfv = sin(zfovr/fTwo)/cos(zfovr/fTwo)
         
         self.fl      = (self.fovs/fTwo)/tanfv
+        self.flmin   = 0.1*self.fl
         self.sfacx   = fOne/tanfv
         self.sfacy   = fOne/tanfv
         self.sfacyAR = self.sfacy/self.ratio
@@ -636,14 +637,14 @@ class Draw3D:
             vlist[pcnt][1].X = self.GridPt2[i10].X + k*xd1
             vlist[pcnt][2].X = self.GridPt2[i20].X + k*xd2
              
-            if not ((vlist[pcnt][1].X <= self.fl) and 
-                    (vlist[pcnt][2].X <= self.fl)):
+            if not ((vlist[pcnt][1].X <= self.flmin) and 
+                    (vlist[pcnt][2].X <= self.flmin)):
                 # Create un-clipped line.
                 vlist[pcnt][1].Y = self.GridPt2[i10].Y + k*yd1
                 vlist[pcnt][1].Z = self.GridPt2[i10].Z + k*zd1
                 vlist[pcnt][2].Y = self.GridPt2[i20].Y + k*yd2
                 vlist[pcnt][2].Z = self.GridPt2[i20].Z + k*zd2
-                vlist[pcnt][3]   = vlist[pcnt][1]
+                vlist[pcnt][3]   = copy(vlist[pcnt][1])
                 vcnt[pcnt]       = 3
                 
                 if DBG_LVL > 4:
@@ -941,6 +942,7 @@ class Draw3D:
         sbuff = StringIO()
         sbuff.write(self.TextFormats[text] % (valnum))
         valstr =sbuff.getvalue()
+        sbuff.close()
         if self.TextArtists[text] is None:
             #self.zorder += fOne
             self.TextArtists[text] = \
@@ -994,6 +996,8 @@ class Draw3D:
         elif event.key == 'down':
             self.zoom = self.zoom/1.25
             self.setFOVsfacs()
+        elif event.key == '0':
+            self.waitmsec = 0
         elif event.key == 'right':
             self.waitmsec -= 50
             self.waitmsec = lmax(0, self.waitmsec)
@@ -1333,10 +1337,11 @@ class Draw3D:
                     sbuff = StringIO()
                     sbuff.write("./Ximg/img_%04hd.png" % (img_count))
                     img_fname = sbuff.getvalue()
+                    sbuff.close()
                     self.fig.savefig(img_fname, format='png')
                     img_count += 1
                     last_tsec = tsec
-            
+             
             # Time delay.
             while True:
                 cpumsec2 = 1000.0*time.perf_counter()
