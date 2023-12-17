@@ -92,7 +92,5 @@ echo "Creating animated gif file:  img_anim.gif @ 0.0!DELAY! sec/image"
 magick -size 800x600 -dispose None -delay !DELAY! !GIF_LIST! -loop 2 img_anim.gif
 
 :exit0
-
 EndLocal
-
 exit /b 0

@@ -34,7 +34,6 @@ for /F "tokens=*" %%f in ( 'dir /B *.png' ) do (
     set /a njpg=!njpg! + 1
   )
 )
-echo "!njpg!"
 
 rem Check if PNG to JPEG conversion can be skipped.
 rem NOTE: Assumes each JPEG file was previously converted
@@ -94,7 +93,5 @@ if exist !FFMPEG_EXE! (
 echo "Could not find ffmpeg to create ./img_anim.mp4 file."
 
 :exit0
-
 EndLocal
-
 exit /b 0
