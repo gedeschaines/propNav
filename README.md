@@ -35,7 +35,7 @@ The contents of each subdirectory are as follows:
 + dat - Polygon data files for threeD ground plane, missile and target faceted shapes.
 + img - Figure 12 3D plot from **propNav**  SAM case 1234, animated GIF file created with **threeD** from ./out/TXYZ.OUT.1234 file.
 + out - TXYZ.OUT trajectory data files written by **propNav** for sample missile/target engagement cases (see "Sample Cases" section below).
-+ util - Bash shell and Windows batch scripts to convert sequence of PNG images to animated GIF or MP4 video files.
++ util - Bash shell scripts and Windows Batch files to convert sequence of PNG images to animated GIF or MP4 video files.
 + Ximg - Images captured during **pyThreeD** execution (**Exists only in local repository workspace**).
 
 ## Execution Prerequisites ##
