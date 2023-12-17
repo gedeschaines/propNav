@@ -5,8 +5,15 @@ rem DATE:  17 DEC 2023
 rem AUTH:  G. E. Deschaines
 rem DESC:  Converts a sequence of PNG files to JPEG files and merges
 rem        the JPEG files into a MP4 video file.
-
-rem NOTE:  Requires ffmpeg and the ImageMagick magick program.
+rem
+rem NOTE:
+rem
+rem   [1] Requires ffmpeg and the ImageMagick magick program.
+rem
+rem   [2] Invoke this batch file while working within the pyThreeD
+rem       subdirectory containing img_####.png files (i.e., ./Ximg)
+rem       as ../util/png2mp4.bat since it's assumed relative path
+rem       ../pyThreeD.py exists from where this batch file executes.
 
 SetLocal EnableExtensions EnableDelayedExpansion
 

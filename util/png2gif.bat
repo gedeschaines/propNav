@@ -5,8 +5,15 @@ rem DATE:  17 DEC 2023
 rem AUTH:  G. E. Deschaines
 rem DESC:  Converts a sequence of PNG files to GIF files and merges
 rem        the GIF files into an animated GIF file.
-
-rem NOTE:  Requires ImageMagick magick program.
+rem
+rem NOTE:
+rem
+rem   [1] Requires ImageMagick magick program.
+rem
+rem   [2] Invoke this batch file while working within the pyThreeD
+rem       subdirectory containing img_####.png files (i.e., ./Ximg)
+rem       as ../util/png2gif.bat since it's assumed relative path
+rem       ../pyThreeD.py exists from where this batch file executes.
 
 SetLocal EnableExtensions EnableDelayedExpansion
 
@@ -29,6 +36,7 @@ for /F "tokens=*" %%f in ( 'dir /B *.png' ) do (
 rem Check if PNG to GIF conversion can be skipped.
 rem NOTE: Assumes each GIF file was previously converted
 rem       from like named PNG file using this script.
+
 if !count! GTR 0 (
   if !ngif! EQU !count! goto find_fps
 )
