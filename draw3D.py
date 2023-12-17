@@ -229,7 +229,7 @@ class Draw3D:
         self.imgFPS  = imgFPS
         self.canvas  = fig.canvas
         self.backend = mpl.get_backend().upper()
-        self.bckgrnd = self.canvas.copy_from_bbox(self.ax.bbox)
+        self.bckgrnd = self.canvas.copy_from_bbox(self.fig.bbox)
         self.zorder  = 0  # artist drawing order
         
         # Rendered Image Trajectory State Annotations.

@@ -97,6 +97,11 @@ if __name__ == "__main__":
     #fig = plt.figure(figsize=(10.0,8.0), dpi=100.0)    # 775x616 viewport
     #fig = plt.figure(figsize=(10.32,7.80), dpi=100.0)  # 800x601 viewport
     
+    try:
+        fig.set_tight_layout(True)
+    except:
+        fig.set_layout_engine('tight')
+        
     # Specify plotting layout and parameters.
     
     ax = fig.add_subplot(111, autoscale_on=False, animated=False)
