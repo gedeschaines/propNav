@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-#FILE:  png2gif
+#FILE:  png2gif.sh
 #DATE:  11 DEC 2023
 #AUTH:  G. E. Deschaines
 #DESC:  Converts a sequence of PNG files to GIF files and merges
