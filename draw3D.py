@@ -1018,9 +1018,6 @@ class Draw3D:
     
     def MainLoop(self):
         
-        self.selection = None
-        self.last_selection = None
-        
         self.doneflag = False
         self.quitflag = False
         self.paused = False
@@ -1268,20 +1265,17 @@ class Draw3D:
             # Draw ground plane polygon.
             if DBG_LVL > 2:
                 print("MainLoop:  Draw ground plane polygon...")
-            
             self.DrawPoly3D(1)
             
             # Draw ground plane grid.
             if DBG_LVL > 2:
                 print("MainLoop:  Draw ground plane grid...")
-            
             self.DrawGrid3D(1)
             self.DrawGrid3D(2)
             
             # Draw target and missile shape polygons.
             if DBG_LVL > 2:
                 print("MainLoop:  Draw target and missile polygons...")
-                  
             while not self.polPQ.isEmpty():
                 anElement = self.polPQ.priorityDeq()
                 if DBG_LVL > 3:
@@ -1293,6 +1287,7 @@ class Draw3D:
                 self.DrawPoly3D(anElement.info)
             
             # Display time, zoom, missile and target state variables.
+            self.zorder = 1000.0
             if ( ktot < 0 ):
                 # TXYZ padded time record.
                 self.AnnotateText('time', true_tsec)
@@ -1300,8 +1295,6 @@ class Draw3D:
                 # TXYZ true time record.
                 self.AnnotateText('time', tsec)
                 true_tsec = tsec
-            
-            self.zorder = 1000.0
             self.AnnotateText('zoom', self.zoom)
             self.AnnotateText('Xm',  XM)
             self.AnnotateText('Ym',  YM)
@@ -1317,8 +1310,7 @@ class Draw3D:
             self.AnnotateText('PHt', PHT)
             self.DrawText()
             
-            # Update display of rendered image.
-            
+            # Update display of rendered image.         
             if self.backend[0:2] == 'WX':
                 self.canvas.update()
             elif self.backend[0:2] == 'TK':
