@@ -5,8 +5,15 @@
 #AUTH:  G. E. Deschaines
 #DESC:  Converts a sequence of PNG files to GIF files and merges
 #       the GIF files into an animated GIF file.
-
-#NOTE:  Requires the ImageMagick convert program.
+#
+# NOTE:
+#
+#   [1] Requires ImageMagick magick program.
+#
+#   [2] Invoke this shell script while working within the pyThreeD
+#       subdirectory containing img_####.png files (i.e., ./Ximg)
+#       as ../util/png2gif.sh since it's assumed relative path
+#       ../pyThreeD.py exists from where this shell script executes.
 
 # Get list of PNG files.
 
