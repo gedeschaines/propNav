@@ -1438,9 +1438,10 @@ if __name__ == "__main__":
         print("Press X key to exit animation (press Up Arrow key start replay).")
         print("Press Esc key to exit Figure 13.")
         
+        # Interactive replay loop.
         while not doneflag:
             if paused:
-                plt.pause(0.01)
+                fig3D.canvas.flush_events()
                 continue
             quitflag = False
             nincr    = 0
@@ -1453,7 +1454,7 @@ if __name__ == "__main__":
                 if quitflag:
                     break
                 if paused:
-                    plt.pause(0.01)
+                    fig3D.canvas.flush_events()
                     continue
                 fig3D.canvas.restore_region(bckgrnd)
                 for a in (anim3D(iloop)):
