@@ -1407,7 +1407,19 @@ if __name__ == "__main__":
     else:
         INTERCEPT = True
         print("\n*** Missile intercepted target.")
-
+        
+    if SHOW_ANIM or SAVE_ANIM or PLOT_DATA or PRINT_TXYZ:
+        
+        # Ensure Time data array contains nSamples of simulation time steps
+        # in order to prevent plotted lines from wrapping back to time 0.0
+        # if the simulation loop was terminated before all nSamples of data
+        # were collected. Note: This may no longer be necessary.
+        
+        while i < nSamples:
+            Time[i] = t
+            t = t + N_TIME
+            i = i + 1
+            
     if SHOW_ANIM:
         # Display location of actual or missed intercept.
         fig3D.canvas.restore_region(bckgrnd)
@@ -1476,19 +1488,7 @@ if __name__ == "__main__":
             else:
                 print("\nClose Figure 13 to terminate program.")
             plt.show(block=True)
-            
-    if SHOW_ANIM or SAVE_ANIM or PLOT_DATA or PRINT_TXYZ:
-        
-        # Ensure Time data array contains nSamples of simulation time steps
-        # in order to prevent plotted lines from wrapping back to time 0.0
-        # if the simulation loop was terminated before all nSamples of data
-        # were collected. Note: This may no longer be necessary.
-        
-        while i < nSamples:
-            Time[i] = t
-            t = t + N_TIME
-            i = i + 1
-            
+                 
     if SAVE_ANIM:
         
         # Create and show the 3D engagement animation.
