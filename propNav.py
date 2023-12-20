@@ -68,19 +68,20 @@
 # See DISCLAIMER
 
 import sys
-
+import time
 
 from math import ceil, floor, cos, sin, acos, asin, atan, atan2, pi, sqrt 
 from io import StringIO
 #from locale import format_string
+import warnings
+warnings.simplefilter(action='ignore', category=FutureWarning)
 
 try:
     import numpy             as np
     import numpy.linalg      as la
     import matplotlib        as mpl
     import matplotlib.pyplot as plt
-#   import matplotlib.animation as animation
-#   from matplotlib.lines import Line2D
+    import matplotlib.animation as animation
     from mpl_toolkits.mplot3d.art3d import Line3D
 except ImportError:
     print("* Error: NumPy and Matplotlib packages required.")
@@ -123,7 +124,7 @@ PNAV    = PN_PURE
 global Nm, Nt
 
 Nm = 4    # proportional navigation constant
-Nt = 3.0  # target turning acceleration (g's)
+Nt = 6.0  # target turning acceleration (g's)
 
 # Set missile type and acceleration maximum.
 
@@ -219,16 +220,31 @@ else:
     
 # Set processing output control flags.
 
-PRINT_DATA = False   # Controls printing of collected data
-PLOT_DATA  = True    # Controls plotting of collected data
-SAVE_ANIM  = False   # Controls saving animation images (not implemented)
-PRINT_TXYZ = True    # Controls printing TXYZ.OUT file
+PRINT_DATA = False  # Controls printing of collected data (for debugging)
+PLOT_DATA  = False  # Controls plotting of collected data
+SHOW_ANIM  = False  # Controls showing interactive 3D engagement animation 
+SAVE_ANIM  = True   # Controls saving/showing 3D engagement animation
+PRINT_TXYZ = False  # Controls printing TXYZ.OUT file
 
 ###
 ### Procedures for Proportional Navigation Guidance model
 ###
 
 def Uvec(V):
+    """
+    Returns unit direction vector of given vector V.
+    
+    Parameters
+    ----------
+    V : float 3-vector
+        Vector.
+
+    Returns
+    -------
+    U : float 3-vector
+        Unit direction vector of V.
+
+    """
     magV = la.norm(V)
     if magV > 0.0: U = V / magV
     else:          U = np.array([0.0, 0.0, 0.0])
@@ -713,7 +729,7 @@ def delT(S):
         h = 0.0005  # Note: this value should be tStep/2.
     return h
 
-
+   
 # Differential equations of motion constants.
     
 tStep = T_STEP  # simulation and integration time step (sec)
@@ -731,7 +747,7 @@ N_TIME = N_STEP*T_STEP
 nSamples   = int(ceil(T_STOP/N_TIME)) + 1
 nSamplesp1 = nSamples + 1  # add 1 for possible overflow.
     
-if PLOT_DATA or PRINT_TXYZ:
+if SHOW_ANIM or SAVE_ANIM or PLOT_DATA or PRINT_TXYZ:
     Time  = np.zeros(nSamplesp1)  # simulation time
     Ptx   = np.zeros(nSamplesp1)  # target position x
     Pty   = np.zeros(nSamplesp1)  # target position y
@@ -751,8 +767,12 @@ if PLOT_DATA or PRINT_TXYZ:
     Amx   = np.zeros(nSamplesp1)  # missile acceleration x
     Amy   = np.zeros(nSamplesp1)  # missile acceleration y
     Amz   = np.zeros(nSamplesp1)  # missile acceleration z
+    Wrx   = np.zeros(nSamplesp1)  # Angular rate of Rtm x
+    Wry   = np.zeros(nSamplesp1)  # Angular rate of Rtm y
+    Wrz   = np.zeros(nSamplesp1)  # Anguler rate of Rtm z
     Dcls  = np.zeros(nSamplesp1)  # Closest approach distance
     LOSd  = np.zeros(nSamplesp1)  # LOS rate in (deg/sec)
+    T2go  = np.zeros(nSamplesp1)  # Time to go (sec)
     VELc  = np.zeros(nSamplesp1)  # Closing velocity (meters/sec)
     Atg   = np.zeros(nSamplesp1)  # Target acceleration in g's
     Acmg  = np.zeros(nSamplesp1)  # Missile acceleration in g's
@@ -807,11 +827,11 @@ def collectData(i, t, S):
         wsgn = np.sign(np.dot(Wlosb, Uyb))
         asgn = np.sign(np.dot(Amb,   Uzb))
         PorY = 'P'
-    losr  = wsgn*la.norm(Wlosb)
-    vcls  = la.norm(Vclose(Vt, Vm, Ulos, True))
-    dcls  = Dclose(S)
-    acmg  = asgn*la.norm(dVm)/g
-    zemd  = la.norm(ZEMn(Rlos, Vrel(Vt,Vm), tgo))
+    losr = wsgn*la.norm(Wlosb)
+    vcls = la.norm(Vclose(Vt, Vm, Ulos, True))
+    dcls = Dclose(S)
+    acmg = asgn*la.norm(dVm)/g
+    zemd = la.norm(ZEMn(Rlos, Vrel(Vt,Vm), tgo))
     
     Vc, Tgo = calcVcTgo(Pt, Vt, Pm, Vm)
     
@@ -853,7 +873,7 @@ def collectData(i, t, S):
         if wsgn != LastWsgn : LastWsgn = wsgn
         if asgn != LastAsgn : LastAsgn = asgn
         
-    if PLOT_DATA or PRINT_TXYZ:
+    if SHOW_ANIM or SAVE_ANIM or PLOT_DATA or PRINT_TXYZ:
         
         Time[i]  = t
         Ptx[i]   = Pt[0]
@@ -874,8 +894,12 @@ def collectData(i, t, S):
         Amx[i]   = dVm[0]
         Amy[i]   = dVm[1]
         Amz[i]   = dVm[2]
+        Wrx[i]   = Wlosi[0]
+        Wry[i]   = Wlosi[1]
+        Wrz[i]   = Wlosi[2]
         Dcls[i]  = dcls
         LOSd[i]  = losr*DPR
+        T2go[i]  = tgo
         VELc[i]  = vcls
         Atg[i]   = la.norm(dVt)/g
         Acmg[i]  = acmg
@@ -886,6 +910,194 @@ def collectData(i, t, S):
         Tvoff[i] = sin(vert*RPD)
         
     return
+
+
+###
+### Procedures for 3D engagement animation
+###
+
+
+def onPress(event):
+    global nincr, iloop, istop, paused, quitflag, doneflag
+    """
+    Keyboard key press handler.
+    """
+    if event.key == 'up':
+        nincr += 1
+        nincr = min(1, nincr)
+    elif event.key == 'down':
+        nincr -= 1
+        nincr = max(-1, nincr)
+    elif event.key == 'right':
+        nincr = 0
+        iloop += 1
+        iloop = min(iloop, istop)
+    elif event.key == 'left':
+        nincr = 0
+        iloop -= 1
+        iloop = max(iloop, 0)
+    elif event.key == ' ':
+        paused = not paused
+    elif event.key == 'x':
+        # Exits loop and permits restart.
+        quitflag = True
+        doneflag = False
+    elif event.key == 'escape':
+        # Exits loop and closes figure.
+        quitflag = True
+        doneflag = True
+        
+
+def blit3D(fig, ax, backend):
+    """
+    Background blitting function for 3D engagement animation.
+    """
+    if backend[0:2] == 'WX':
+        fig.canvas.update()
+    elif backend[0:2] == 'TK':
+        fig.canvas.blit(ax.bbox)
+    elif backend[0:2] == 'NB':
+        fig.canvas.blit(ax.bbox)
+    elif backend == 'MODULE://IPYMPL.BACKEND_NBAGG':
+        fig.canvas.blit(ax.bbox)
+    else:  # QT or GTK
+        fig.canvas.update()
+    fig.canvas.flush_events()
+    
+    
+def init3D():
+    """
+    Initialization function for 3D engagement animation.
+    """
+    global ax3D
+    global linePt, linePttrk, linePtxy, linePtxz
+    global LinePm, linePmtrk, linePmxy, linePmxz
+    global linePtv, linePmv, linePma, linePwr, linePx
+    global linePttgoxy, linePttgoxz, linePmtgoxy, linePmtgoxz
+    global time_text
+    
+    linePt.set_data_3d(np.array([]), np.array([]), np.array([]))
+    linePttrk.set_data_3d(np.array([]), np.array([]), np.array([]))
+    linePtxy.set_data_3d(np.array([]), np.array([]), np.array([]))
+    linePtxz.set_data_3d(np.array([]), np.array([]), np.array([]))
+    linePm.set_data_3d(np.array([]), np.array([]), np.array([]))
+    linePmtrk.set_data_3d(np.array([]), np.array([]), np.array([]))
+    linePmxy.set_data_3d(np.array([]), np.array([]), np.array([]))
+    linePmxz.set_data_3d(np.array([]), np.array([]), np.array([]))
+    linePtv.set_data_3d(np.array([]), np.array([]), np.array([]))
+    linePmv.set_data_3d(np.array([]), np.array([]), np.array([]))
+    linePma.set_data_3d(np.array([]), np.array([]), np.array([]))
+    linePwr.set_data_3d(np.array([]), np.array([]), np.array([]))
+    linePx.set_data_3d(np.array([]), np.array([]), np.array([]))
+    linePttgoxy.set_data_3d(np.array([]), np.array([]), np.array([]))
+    linePttgoxz.set_data_3d(np.array([]), np.array([]), np.array([]))
+    linePmtgoxy.set_data_3d(np.array([]), np.array([]), np.array([]))
+    linePmtgoxz.set_data_3d(np.array([]), np.array([]), np.array([]))
+    
+    ax3D.legend((linePt.get_label(),
+                 linePm.get_label(),
+                 linePma.get_label(),
+                 linePwr.get_label()), loc='upper right')
+                
+    time_text.set_text('')
+
+    # Return artists in drawing order.
+    return linePttgoxy, linePmtgoxy, linePttgoxz, linePmtgoxz, \
+           linePtxy, linePtxz, linePmxy, linePmxz, linePttrk, linePmtrk, \
+           linePtv, linePt, linePwr, linePmv, linePma, linePm, linePx, time_text
+    
+     
+def anim3D(n):
+    """
+    Animation function for 3D engagement animation.
+    """
+    global fig3D, ax3D
+    global INTERCEPT, istop
+    global Ptx, Pty, PTz, Vtx, Vty, Vtz
+    global Pmx, Pmy, Pmz, Vmx, Vmy, Vmz, Amx, Amy, Amz, Amcg
+    global Wrx, Wry, Wrz, LOSd, T2go
+    global Qsfac, ymax, zmin
+    global linePt, linePttrk, linePtxy, linePtxz
+    global LinePm, linePmtrk, linePmxz, linePmxz
+    global linePtv, linePmv, linePma, linePwr, linePx
+    global linePttgoxy, linePttgoxz, linePmtgoxy, linePmtgoxz
+    global time_text
+
+    np1 = n + 1
+    
+    linePt.set_data_3d(Ptx[n:np1], Pty[n:np1], Ptz[n:np1])
+    linePttrk.set_data_3d(Ptx[0:np1], Pty[0:np1], Ptz[0:np1])
+    linePtxy.set_data_3d(Ptx[0:np1], Pty[0:np1], np.ones(np1)*zmin)
+    linePtxz.set_data_3d(Ptx[0:np1], np.ones(np1)*ymax, Ptz[0:np1])
+    
+    QVt = np.array([Vtx[n], Vty[n], Vtz[n]])*T2go[n]
+    linePttgoxy.set_data_3d(np.array([Ptx[n], Ptx[n]+QVt[0]], dtype=object),
+                            np.array([Pty[n], Pty[n]+QVt[1]], dtype=object),
+                            np.array([zmin,   zmin         ], dtype=object))
+    linePttgoxz.set_data_3d(np.array([Ptx[n], Ptx[n]+QVt[0]], dtype=object),
+                            np.array([ymax,   ymax         ], dtype=object),
+                            np.array([Ptz[n], Ptz[n]+QVt[2]], dtype=object))
+    
+    linePm.set_data_3d(Pmx[n:np1], Pmy[n:np1], Pmz[n:np1])
+    linePmtrk.set_data_3d(Pmx[0:np1], Pmy[0:np1], Pmz[0:np1])
+    linePmxy.set_data_3d(Pmx[0:np1], Pmy[0:np1], np.ones(np1)*zmin)
+    linePmxz.set_data_3d(Pmx[0:np1], np.ones(np1)*ymax, Pmz[0:np1])
+    
+    QVm = np.array([Vmx[n], Vmy[n], Vmz[n]])*T2go[n]
+    linePmtgoxy.set_data_3d(np.array([Pmx[n], Pmx[n]+QVm[0]], dtype=object),
+                            np.array([Pmy[n], Pmy[n]+QVm[1]], dtype=object),
+                            np.array([zmin,   zmin         ], dtype=object))
+    linePmtgoxz.set_data_3d(np.array([Pmx[n], Pmx[n]+QVm[0]], dtype=object),
+                            np.array([ymax,   ymax         ], dtype=object),
+                            np.array([Pmz[n], Pmz[n]+QVm[2]], dtype=object))
+    
+    QVt = Uvec(np.array([Vtx[n], Vty[n], Vtz[n]]))*Qsfac
+    linePtv.set_data_3d(np.array([Ptx[n], Ptx[n]+QVt[0]], dtype=object),
+                        np.array([Pty[n], Pty[n]+QVt[1]], dtype=object),
+                        np.array([Ptz[n], Ptz[n]+QVt[2]], dtype=object))
+    QVm = Uvec(np.array([Vmx[n], Vmy[n], Vmz[n]]))*Qsfac
+    linePmv.set_data_3d(np.array([Pmx[n], Pmx[n]+QVm[0]], dtype=object),
+                        np.array([Pmy[n], Pmy[n]+QVm[1]], dtype=object),
+                        np.array([Pmz[n], Pmz[n]+QVm[2]], dtype=object))
+    QAm = Uvec(np.array([Amx[n], Amy[n], Amz[n]]))*abs(Acmg[n])*Qsfac/Gmmax[MSL]
+    linePma.set_data_3d(np.array([Pmx[n], Pmx[n]+QAm[0]], dtype=object),
+                        np.array([Pmy[n], Pmy[n]+QAm[1]], dtype=object),
+                        np.array([Pmz[n], Pmz[n]+QAm[2]], dtype=object))                
+    QWr = Uvec(np.array([Wrx[n], Wry[n], Wrz[n]]))*min(abs(LOSd[n]),6.0)*Qsfac/6.0
+    linePwr.set_data_3d(np.array([Pmx[n], Pmx[n]+QWr[0]], dtype=object),
+                        np.array([Pmy[n], Pmy[n]+QWr[1]], dtype=object),
+                        np.array([Pmz[n], Pmz[n]+QWr[2]], dtype=object))
+    
+    if n == istop:
+        if INTERCEPT:
+            linePx.set_data_3d(Pmx[n:np1],
+                               Pmy[n:np1],
+                               Pmz[n:np1])
+            linePx.set(color='m', ls=' ', lw=1.0,
+                       marker='x' ,mew=3.0, mec='m', mfc='m',
+                       label='Actual Intercept')
+        else:
+            linePx.set_data_3d(np.array([Pmx[n],Ptx[n]]),
+                               np.array([Pmy[n],Pty[n]]),
+                               np.array([Pmz[n],Ptz[n]]))
+            linePx.set(color='c', ls=' ', lw=1.0,
+                       marker='o', mew=3.0, mec='c', mfc='c',
+                       label='Missed Intercept')
+        ax3D.legend((linePt.get_label(),
+                     linePm.get_label(),
+                     linePma.get_label(),
+                     linePwr.get_label(),
+                     linePx.get_label()), loc='upper right')    
+        fig3D.canvas.draw()
+    else:
+        linePx.set_data_3d(np.array([]), np.array([]), np.array([]))
+        
+    time_text.set_text('Time = %.4f' % Time[n])
+
+    # Return artists in drawing order.
+    return linePttgoxy, linePmtgoxy, linePttgoxz, linePmtgoxz, \
+           linePtxy, linePtxz, linePmxy, linePmxz, linePttrk, linePmtrk, \
+           linePtv, linePt, linePwr, linePmv, linePma, linePm, linePx, time_text
 
 
 ###
@@ -947,8 +1159,7 @@ if __name__ == "__main__":
         mel = atan((EstPt[2]-Pm0[2])/la.norm([EstPt[0]-Pm0[0], EstPt[1]-Pm0[1]]))*DPR
 
     Vm0 = setVm(magVm, maz*RPD, mel*RPD)
-
-    
+   
     print("Applying %s proportional navigation guidance law." % (PN_LAWS[PNAV]))
     
     if PRINT_DATA:
@@ -968,6 +1179,139 @@ if __name__ == "__main__":
         print("Missile initial velocity:   [%9.3f, %9.3f, %9.3f]" % 
               (Vm0[0], Vm0[1], Vm0[2]))
     
+    # Initialize 3D plot for engagement animation.
+    
+    Writer = None
+    if SAVE_ANIM:
+        try:
+            Writer = animation.writers['ffmpeg']
+        except KeyError:
+            try:
+                Writer = animation.writers['avconv']
+            except KeyError:
+                print("Cannot save animation, no animation writers available!")
+                print("Try installing ffmpeg or avconv.")
+                SAVE_ANIM = False
+            
+    if SHOW_ANIM or SAVE_ANIM:
+        istop = None
+        fig3D = plt.figure(13, figsize=(6,6), dpi=100)
+        ax3D  = fig3D.add_subplot(111, projection='3d',
+                                  autoscale_on=False, animated=False)
+        linePt = Line3D([], [], [], color='r', ls=' ', lw=1.0,  # target in 3D space
+                        marker='s', mew=1.0, mec='r', mfc='w',
+                        label='Target', animated=False)
+        linePm = Line3D([], [], [], color='b', ls=' ', lw=1.0,  # missile in 3D space
+                        marker='x', mew=1.0, mec='b', mfc='w',
+                        label='Missile', animated=False)
+        linePx = Line3D([], [], [], color='k', ls=' ', lw=1.0,  # intercept in 3D space
+                        marker=' ', mew=1.0, mec='k', mfc='k',
+                        label='', animated=False)
+        linePtv = Line3D([], [], [], color='r', ls='-', lw=1.0, # tgt vel in 3D space
+                         marker=' ', mew=1.0, mec='r', mfc='r',
+                         label='', animated=False)
+        linePmv = Line3D([], [], [], color='b', ls='-', lw=1.0, # msl vel in 3D space
+                         marker=' ', mew=1.0, mec='b', mfc='b',
+                         label='', animated=False)
+        linePma = Line3D([], [], [], color='m', ls='-', lw=1.0, # msl acc in 3D space
+                         marker=' ', mew=1.0, mec='m', mfc='m',
+                         label='Command Accel', animated=False)
+        linePwr = Line3D([], [], [], color='g', ls='-', lw=1.0, # Rlos ang vel in 3D space
+                         marker=' ', mew=1.0, mec='g', mfc='g',
+                         label='Rlos Ang Vel', animated=False)
+        linePttrk = Line3D([], [], [], color='r', ls='-', lw=2.0,  # target track in 3D space
+                           marker=' ', mew=1.0, mec='r', mfc=None,
+                           label='', animated=False)
+        linePtxy = Line3D([], [], [], color='r', ls=':', lw=1.0,  # target track in XY plane
+                           marker=' ', mew=1.0, mec='r', mfc=None,
+                           label='', animated=False)
+        linePtxz = Line3D([], [], [], color='r', ls=':', lw=1.0,  # target track in XZ plane
+                           marker=' ', mew=1.0, mec='r', mfc=None,
+                           label='', animated=False)
+        linePmtrk = Line3D([], [], [], color='b', ls='-', lw=2.0,  # missile track in 3D space
+                           marker=' ', mew=1.0, mec='b', mfc=None,
+                           label='', animated=False)
+        linePmxy = Line3D([], [], [], color='b', ls=':', lw=1.0,  # missile track in XY plane
+                           marker=' ', mew=1.0, mec='b', mfc=None,
+                           label='', animated=False)
+        linePmxz = Line3D([], [], [], color='b', ls=':', lw=1.0,  # missile track in XZ plane
+                           marker=' ', mew=1.0, mec='b', mfc=None,
+                           label='', animated=False)
+        linePttgoxy = Line3D([], [], [], color='k', ls=':', lw=1.0,  # Estimated tgt Tgo loc in XY plane
+                              marker='s', mew=1.0, mec='r', mfc='w',
+                              label='', animated=False)
+        linePttgoxz = Line3D([], [], [], color='k', ls=':', lw=1.0,  # Estimated tgt Tgo loc in XZ plane
+                              marker='s', mew=1.0, mec='r', mfc='w',
+                              label='', animated=False)
+        linePmtgoxy = Line3D([], [], [], color='k', ls=':', lw=1.0,  # Estimated msl Tgo loc in XY plane
+                              marker='x', mew=1.0, mec='b', mfc=None,
+                              label='', animated=False)
+        linePmtgoxz = Line3D([], [], [], color='k', ls=':', lw=1.0,  # Estimated msl Tgo loc in XZ plane
+                              marker='x', mew=1.0, mec='b', mfc=None,
+                              label='', animated=False)
+        text = "3D Animation of missile/target engagement ({0}, N={1}, At={2})"\
+            .format(PN_LAWS[PNAV], int(Nm), int(Nt))
+        ax3D.set_title(text)
+        ax3D.set_xlabel('X (meters)')
+        ax3D.set_ylabel('Y (meters)')
+        ax3D.set_zlabel('Z (meters)')
+        if MSL == SAM:
+            ax3D.set_xlim3d([Pm0[0],  Pt0[0]+500.0])
+            ax3D.set_ylim3d([Pm0[1],  Pm0[1]+(Pt0[0]+500-Pm0[0])])
+            ax3D.set_zlim3d([0.0,    (Pt0[0]+500-Pm0[0])/2])
+        else:
+            ax3D.set_xlim3d([floor(Pm0[0]/500.0)*500.0,
+                             ceil(Pt0[0]/500.0)*500.0])
+            ax3D.set_ylim3d([floor(Pm0[1]/500.0)*500.0 - 
+                             (ceil(Pt0[0]/500.0)*500.0 - 
+                              floor(Pm0[0]/500.0)*500.0)/2,
+                             floor(Pm0[1]/500.0)*500.0 +
+                             (ceil(Pt0[0]/500.0)*500.0 - 
+                              floor(Pm0[0]/500.0)*500.0)/2])
+            ax3D.set_zlim3d([floor(Pm0[2]/500.0)*500.0 - 
+                             (ceil(Pt0[0]/500.0)*500.0 - 
+                              floor(Pm0[0]/500.0)*500.0)/2,
+                             floor(Pm0[2]/500.0)*500.0 +
+                             (ceil(Pt0[0]/500.0)*500.0 - 
+                              floor(Pm0[0]/500.0)*500.0)/2])
+        (xmin, xmax) = ax3D.get_xlim()
+        (ymin, ymax) = ax3D.get_ylim()
+        (zmin, zmax) = ax3D.get_zlim()
+        Qsfac = (xmax-xmin)/15.0
+        time_text = ax3D.text3D(xmin-500.0, ymax+100.0, zmax+(zmax-zmin)/4.0, '')    
+        #ax.set_aspect('equal')
+        ax3D.grid()
+        ax3D.add_line(linePt)
+        ax3D.add_line(linePm)
+        ax3D.add_line(linePma)
+        ax3D.add_line(linePwr)
+        ax3D.add_line(linePx)
+        ax3D.add_line(linePtv)
+        ax3D.add_line(linePmv)
+        ax3D.add_line(linePttrk)
+        ax3D.add_line(linePtxy)
+        ax3D.add_line(linePtxz)
+        ax3D.add_line(linePmtrk)
+        ax3D.add_line(linePmxy)
+        ax3D.add_line(linePmxz)
+        ax3D.add_line(linePttgoxy)
+        ax3D.add_line(linePttgoxz)
+        ax3D.add_line(linePmtgoxy)
+        ax3D.add_line(linePmtgoxz)
+        ax3D.legend(loc='upper right')
+        ax3D.view_init(elev=20.0, azim=220.0)
+        fig3D.canvas.draw()
+        if SHOW_ANIM:
+            # Note: The mouse is disabled to prevent the user from
+            #       changing 3D projection perspective and scaling
+            #       by 3D rotation, panning or zooming. However, it
+            #       would be advantageous for the user not to be so
+            #       restricted.
+            ax3D.disable_mouse_rotation()
+            bckgrnd = fig3D.canvas.copy_from_bbox(fig3D.bbox)
+            backend = mpl.get_backend().upper()
+            plt.show(block=False)
+     
     # Initialize state vector.
     
     S = setS(S, Vt0, Pt0, Vm0, Pm0)
@@ -987,14 +1331,20 @@ if __name__ == "__main__":
     
     while (not Stop(S)) and (i < nSamples):
         
-        if i == 0 or PRINT_DATA or PLOT_DATA or PRINT_TXYZ:            
+        if i == 0 or PRINT_DATA or SHOW_ANIM or SAVE_ANIM or PLOT_DATA or PRINT_TXYZ:            
             collectData(i, t, S)
-        
+            
+        if SHOW_ANIM:
+            fig3D.canvas.restore_region(bckgrnd)
+            for a in (anim3D(i)):
+                ax3D.draw_artist(a)
+            blit3D(fig3D, ax3D, backend)
+            
         # Perform RK4 integration for animation frame.
         for n in range(0, N_STEP):
             if not Stop(S):
                 S = rk4.step(S, dotS)
-            
+        
         # Update simulation time and data samples index.
         t = S[0]
         i = i + 1
@@ -1031,17 +1381,13 @@ if __name__ == "__main__":
     S = rk4.get_Sprev()
     t = S[0]
     
-    if num_trys == max_trys:
-        
+    if num_trys == max_trys:       
         if t < tStop:
             print("\n*** Non-convergent Intercept ***")
         else:
-            print("\n*** Insufficient Simulation Time ***")
-        
+            print("\n*** Insufficient Simulation Time ***")   
         INTERCEPT = False
-        
     else:
-    
         INTERCEPT = True
         
     # Display last missile and target states and
@@ -1052,6 +1398,12 @@ if __name__ == "__main__":
     
     collectData(i, t, S)
     
+    if SHOW_ANIM:
+        fig3D.canvas.restore_region(bckgrnd)
+        for a in (anim3D(i)):
+            ax3D.draw_artist(a)
+        blit3D(fig3D, ax3D, backend)
+        
     istop = i
     iend  = istop + 1
     
@@ -1061,19 +1413,127 @@ if __name__ == "__main__":
     else:
         INTERCEPT = True
         print("\n*** Missile intercepted target.")
-    
-    if PLOT_DATA or PRINT_TXYZ :
+
+    if SHOW_ANIM:
+        # Display location of actual or missed intercept.
+        fig3D.canvas.restore_region(bckgrnd)
+        for a in (anim3D(istop)):
+            ax3D.draw_artist(a)
+        blit3D(fig3D, ax3D, backend)
+
+        nincr    = 0
+        paused   = True
+        quitflag = False
+        doneflag = False
+        
+        # Connect Figure 13 key press handler.
+        cidkey = fig3D.canvas.mpl_connect('key_press_event', onPress)
+        
+        print("\nThe 3D engagement animation may be replayed forward and backward")
+        print("in time. To reset the animation, press Space bar to unpause, then")
+        print("press Up Arrow key to play forward in time. If the animation is")
+        print("exited, press Up Arrow key to restart forward in time, or press")
+        print("Esc key to exit Figure 13 and continue on with program processing.")
+        print("During animation the following key presses are recognized:\n")
+
+        print("Press Up Arrow key twice to play animation forward in time.")
+        print("Press Down Arrow key twice to play animation backward in time.")
+        print("Press Right Arrow key to step animation one frame forward in time.")
+        print("Press Left Arrow key to step animation one frame backward in time.")
+        print("Press Space bar to toggle pause/unpause.")
+        print("Press X key to exit animation (press Right Arrow key restart).")
+        print("Press Esc key to exit Figure 13.")
+        
+        while not doneflag:
+            if paused:
+                plt.pause(0.01)
+                continue
+            quitflag = False
+            nincr    = 0
+            iloop    = 0
+            init3D()
+            while not quitflag:
+                if doneflag or (iloop > istop) or (iloop < 0):
+                    quitflag = True
+                    break
+                if quitflag:
+                    break
+                if paused:
+                    plt.pause(0.01)
+                    continue
+                fig3D.canvas.restore_region(bckgrnd)
+                for a in (anim3D(iloop)):
+                    ax3D.draw_artist(a)
+                blit3D(fig3D, ax3D, backend)
+                iloop += nincr
+                iloop = min(max(0,iloop),istop)
+                
+        # Disconnect Figure 13 key press handler.
+        fig3D.canvas.mpl_disconnect(cidkey)
+        
+        # Enable 3D rotation, panning and zooming of final Figure
+        # 13 image displayed.
+        ax3D.mouse_init()
+        
+        if not (PLOT_DATA or SAVE_ANIM):
+            if PRINT_TXYZ:
+                print("\nClose Figure 13 to continue program.")
+            else:
+                print("\nClose Figure 13 to terminate program.")
+            plt.show(block=True)
+            
+    if SHOW_ANIM or SAVE_ANIM or PLOT_DATA or PRINT_TXYZ:
         
         # Ensure Time data array contains nSamples of simulation time steps
         # in order to prevent plotted lines from wrapping back to time 0.0
         # if the simulation loop was terminated before all nSamples of data
-        # were collected.
+        # were collected. Note: This may no longer be necessary.
         
         while i < nSamples:
             Time[i] = t
             t = t + N_TIME
             i = i + 1
-     
+            
+    if SAVE_ANIM:
+        
+        # Create and show the 3D engagement animation.
+        
+        nframes   = iend
+        tdel      = 1.0/FPS
+        tdel_msec = 1000.0*tdel
+        try:
+            tmsec0 = 1000.0*time.clock()
+        except:
+            tmsec0 = 1000.0*time.process_time()
+        anim3D(0)
+        try:
+            tmsec1 = 1000.0*time.clock()
+        except:
+            tmsec1 = 1000.0*time.process_time()
+        tstep = tmsec1 - tmsec0
+        #interval  = max(ceil(tmsec1-tmsec0),1.0) # allows faster than real-time
+        interval  = tdel_msec - tstep   # approximates real-time
+        anim = animation.FuncAnimation(fig3D, anim3D, init_func=init3D,
+                                       frames=nframes, blit=True,
+                                       cache_frame_data=True,
+                                       interval=interval, repeat=False)
+        print("\nCreating animation video; presentation will begin shortly...")
+        writer = Writer(fps=FPS, codec='libx264',
+                        metadata=dict(artist='propNav'),
+                        bitrate=-1)
+        sbuff = StringIO()
+        sbuff.write("%1d%1d%1d%1d" % (int(MSL), int(PNAV), int(Nm), int(Nt)))
+        case = sbuff.getvalue()
+        sbuff.close()
+        filename = './img/propNav_' + case + '.mp4'
+        anim.save(filename, writer=writer)
+        print("Animation saved in file %s" % filename)
+        if PLOT_DATA or PRINT_TXYZ:
+            print("\nAfter animation stops, close Figure 13 to continue program.")
+        else:
+            print("\nAfter animation stops, close Figure 13 to terminate program.")
+        plt.show()
+ 
     if PLOT_DATA:
         
         # Create and show the plot figures.
@@ -1108,15 +1568,15 @@ if __name__ == "__main__":
         plt.xlabel('X (meters)')
         plt.ylabel('y (meters)')
         if MSL == SAM:
-            plt.xlim([(Pmx[istop]+Ptx[istop])/2-10.0,
-                      (Pmx[istop]+Ptx[istop])/2+5.0])
-            plt.ylim([(Pmy[istop]+Pty[istop])/2-10.0,
-                      (Pmy[istop]+Pty[istop])/2+5.0])
+            plt.xlim([(Pmx[istop]+Ptx[istop])/2-max(10.0, Dcls[istop]),
+                      (Pmx[istop]+Ptx[istop])/2+max(10.0, Dcls[istop])/2.0])
+            plt.ylim([(Pmy[istop]+Pty[istop])/2-max(10.0, Dcls[istop]),
+                      (Pmy[istop]+Pty[istop])/2+max(10.0, Dcls[istop])/2.0])
         else:
-            plt.xlim([(Pmx[istop]+Ptx[istop])/2-20.0,
-                      (Pmx[istop]+Ptx[istop])/2+10.0])
-            plt.ylim([(Pmy[istop]+Pty[istop])/2-20.0,
-                      (Pmy[istop]+Pty[istop])/2+10.0])
+            plt.xlim([(Pmx[istop]+Ptx[istop])/2-max(20.0, Dcls[istop]),
+                      (Pmx[istop]+Ptx[istop])/2+max(20.0, Dcls[istop])/2.0])
+            plt.ylim([(Pmy[istop]+Pty[istop])/2-max(20.0, Dcls[istop]),
+                      (Pmy[istop]+Pty[istop])/2+max(20.0, Dcls[istop])/2.0])
         plt.grid()
         plt.plot(Ptx[istop-3:iend], Pty[istop-3:iend], 's:r',
                  Pmx[istop-3:iend], Pmy[istop-3:iend], 'x:b',
@@ -1143,15 +1603,15 @@ if __name__ == "__main__":
         plt.xlabel('X (meters)')
         plt.ylabel('Z (meters)')
         if MSL == SAM:
-            plt.xlim([(Pmx[istop]+Ptx[istop])/2-10.0,
-                      (Pmx[istop]+Ptx[istop])/2+5.0])
-            plt.ylim([(Pmz[istop]+Ptz[istop])/2-5.0,
-                      (Pmz[istop]+Ptz[istop])/2+2.5])
+            plt.xlim([(Pmx[istop]+Ptx[istop])/2-max(10.0, Dcls[istop]),
+                      (Pmx[istop]+Ptx[istop])/2+max(10.0, Dcls[istop])/2.0])
+            plt.ylim([(Pmz[istop]+Ptz[istop])/2-max(10.0, Dcls[istop])/2.0,
+                      (Pmz[istop]+Ptz[istop])/2+max(10.0, Dcls[istop])/4.0])
         else:
-            plt.xlim([(Pmx[istop]+Ptx[istop])/2-20.0,
-                      (Pmx[istop]+Ptx[istop])/2+10.0])
-            plt.ylim([(Pmz[istop]+Ptz[istop])/2-10.0,
-                      (Pmz[istop]+Ptz[istop])/2+5.0])
+            plt.xlim([(Pmx[istop]+Ptx[istop])/2-max(20.0, Dcls[istop]),
+                      (Pmx[istop]+Ptx[istop])/2+max(20.0, Dcls[istop])/2.0])
+            plt.ylim([(Pmz[istop]+Ptz[istop])/2-max(20.0, Dcls[istop])/2.0,
+                      (Pmz[istop]+Ptz[istop])/2+max(20.0, Dcls[istop])/4.0])
         plt.grid()
         plt.plot(Ptx[istop-3:iend], Ptz[istop-3:iend], 's:r',
                  Pmx[istop-3:iend], Pmz[istop-3:iend], 'x:b',
@@ -1382,6 +1842,13 @@ if __name__ == "__main__":
         ax.add_line(line3)
         ax.add_line(line4)
         ax.add_line(line5)
+        
+        (xmin, xmax) = ax.get_xlim()
+        (ymin, ymax) = ax.get_ylim()
+        (zmin, zmax) = ax.get_zlim()
+        time_text = ax.text3D(xmin-500.0, ymax+100.0, zmax+(zmax-zmin)/4.0,
+                              'Time = %.4f' % Time[istop])    
+
         ax.legend(loc='upper right')
         ax.view_init(elev=20.0, azim=220.0)
         
@@ -1472,6 +1939,7 @@ if __name__ == "__main__":
         sbuff = StringIO()
         sbuff.write("%1d%1d%1d%1d" % (int(MSL), int(PNAV), int(Nm), int(Nt)))
         case = sbuff.getvalue()
+        sbuff.close()
         
         # TXYZ output file record formats.
 

@@ -15,6 +15,8 @@ The **propNav** program was refactored from a Mathcad variant developed in the m
 
 Also included in this repository are the components of **pyThreeD**, a Python 3 variant of the X11/C **[threeD](https://github.com/gedeschaines/threeD)** program. As with **propNav**, this Python 3 program only requires the NumPy and Matplotlib modules.
 
+The table presented on this [web page](https://gedeschaines.github.io/propNav) provides links to MP4 videos for several missile/target engagement sample cases which show engagement animations with simple 3D line plots created by **propNav**, and with 3D faceted missile and target shapes rendered by **pyThreeD** and **threeD** from trajectory data files written by **propNav**.
+
 ## Repository Structure ##
 
 The repository main directory contains this README file, plain text disclaimer file, and following Python script files which comprise the **propNav** program.
@@ -33,7 +35,8 @@ The main directory also contains Python 3 script files which comprise **pyThreeD
 The contents of each subdirectory are as follows:
 
 + dat - Polygon data files for threeD ground plane, missile and target faceted shapes.
-+ img - Figure 12 3D plot from **propNav**  SAM case 1234, animated GIF file created with **threeD** from ./out/TXYZ.OUT.1234 file.
++ doc - Documentation HTML web pages and media files.
++ img - Saved Figure 12 and 13 3D plot images from **propNav**  SAM case 1234, animated GIF file created with **threeD** from ./out/TXYZ.OUT.1234 file. 
 + out - TXYZ.OUT trajectory data files written by **propNav** for sample missile/target engagement cases (see "Sample Cases" section below).
 + util - Bash shell scripts and Windows Batch files to convert sequence of PNG images to animated GIF or MP4 video files.
 + Ximg - Images captured during **pyThreeD** execution (**Exists only in local repository workspace**).
@@ -142,7 +145,28 @@ Both **propNav** and **pyThreeD** have been successfully run with platform OS Py
 
 ## Execution Overview ##
 
-If utilizing **propNav** from a command terminal, then from within the ./propNav directory, invoke **python propNav.py** to execute propNav.py.
+If utilizing **propNav** from a command terminal, then from within the ./propNav directory, invoke **python propNav.py** to execute propNav.py. There are four primary processing option control flags -- SHOW_ANIM, SAVE_ANIM, PLOT_DATA and PRINT_TXYZ; the purpose of each described below.
+
+If the "SHOW_ANIM" flag in the propNav.py file is set to true, then during missile flyout a 3D engagement animation plot depicting motion of the missile along its trajectory and target along its flight path up to the time of intercept, or miss, will be displayed as Matplotlib Figure 13. Upon flyout completion and while Figure 13 is active, the user can interactively replay the animation forward and backward in time using key presses as documented in instructions printed to the terminal when flyout completes. An important feature of the 3D engagement animation is the inclusion of XY plan and XZ profile views for projected locations of missile and target at time-to-go (tgo) assuming constant velocity and heading. An example is shown in the following sequence of saved images of Figure 13 for case 1243 engagement animation at time-of-flight (tof) equal to 0.00, 2.20 and 4.4132 seconds.
+
+ <p align="center">
+  <img src="./img/Figure_13_1243_0_0000.png" width="600" height="600" alt="Figure 13 for case 1243 engagement animation at tof=0.00 seconds"/><br>
+  Figure 13 for case 1243 engagement animation at tof=0.00 seconds
+ </p>
+
+ <p align="center">
+  <img src="./img/Figure_13_1243_2_2000.png" width="600" height="600" alt="Figure 13 for case 1243 engagement animation at tof=2.20 seconds"/><br>
+  Figure 13 for case 1243 engagement animation at tof=2.20 seconds
+ </p>
+
+ <p align="center">
+  <img src="./img/Figure_13_1243_4_4132.png" width="600" height="600" alt="Figure 13 for case 1243 engagement animation at tof=4.4132 seconds"/><br>
+  Figure 13 for case 1243 engagement animation at tof=4.4132 seconds
+ </p>
+
+At about half way into the final tof of 4.4132 seconds for this case of a SAM against a fixed-wing target performing a constant 3g inward level banked turning maneuver, the missile's projected location at tgo (blue 'x' at termimal end of black dotted line segment) is aligning with the projected location of the target (red square at terminal end of black dotted line segment) with assumed constant velocity and heading as determined by the ideal application of pure proportional navigation guidance with navigation constant of 4.
+
+If the "SAVE_ANIM" flag in the propNav.py file is set to true and **ffmpeg** or **avconv** is available, then the same 3D engagement animation plot described above for "SHOW_ANIM" will be created upon completion of missile flyout, saved to a video file and displayed on the desktop as Matplotlib Figure 13. Unlike for SHOW_ANIM, this displayed 3D engagement animation cannot be replayed. To interact with the 3D engagement animation, the user will be limited to playback speed and frame stepping options available when using media players such as **ffplay** or **VLC** to view the 3D engagement animation plot video file. An MP4 video of engagement animation plots produced by **propNav** for several engagement sample cases may viewed by clicking on its corresponding link in the table presented on this [web page](https://gedeschaines.github.io/propNav).
 
 If the "PLOT_DATA" flag in the propNav.py file is set to true, then upon completion of the missile flyout, twelve plot figures will be cascaded across the desktop.
 
@@ -153,11 +177,11 @@ The first figure is a plot depicting closing distances at time-of-intercept and 
   Figure 12 for engagement saved in TXYZ.OUT.1243
  </p>
 
-If the "PRINT_TXYZ" flag in the propNav.py file is set to true, then a trajectory data file of the name "TXYZ.OUT.####" will be written to the ./out subdirectory. This trajectory data file can be read and rendered by the **pyThreeD** and **threeD** programs.
+If the "PRINT_TXYZ" flag in the propNav.py file is set to true, then a trajectory data file of the name "TXYZ.OUT.####" will be written to the ./out subdirectory. This trajectory data file can be read and rendered by the **pyThreeD** and **threeD** programs. An MP4 video of animated rendering produced by **pyThreeD** and **threeD**  for several **propNav** engagement sample cases may viewed by clicking on its corresponding link in the table presented on this [web page](https://gedeschaines.github.io/propNav).
 
 To utilize **pyThreeD** from a command terminal, invoke **python ThreeD.py _CaseId \[0|1]_** from within the ./propNav directory to execute pyThreeD.py. The *CaseId* argument corresponds to "####" dot-appended to a TXYZ.OUT filename, and *\[0|1]* option for saving rendered images as PNG files (0=False, 1=True). If using **threeD**, follow steps delineated in the "Execution Overview" section of the associated [README](https://github.com/gedeschaines/threeD#readme) file. The animated GIF displayed in the header of this document was rendered by **threeD**.
 
-Although **propNav** can be run from a command terminal, users may find it easier from within the Spyder IDE application. Doing so allows code modification prior to program execution, such as changing missile or target initial conditions, or selecting different processing options. Additionally, if a Spyder IDE version 4 or greater is utilized, the twelve plot figures can be "inlined" within the Spyder workspace Plot Pane instead of cascaded across the desktop. Unfortunately "inlined" plots are not interactive. This primarily affects the 3D plot presented in figure 12. Instead of being able to rotate the plot for best viewing angle, the "elev" and "azim" arguments in figure 12's "ax.view_init()" procedure call have to be modified and the program rerun. It's best to click on the "X" (or press Ctrl+Shift+W) with the Plots Pane selected to remove all plots before rerunning propNav.py.
+Although **propNav** can be run from a command terminal, users may find it easier from within the Spyder IDE application if neither SHOW_ANIM or SAVE_ANIM flags are set to true. Doing so allows code modification prior to program execution, such as changing missile or target initial conditions, or selecting different processing options. Additionally, if a Spyder IDE version 4 or greater is utilized, the twelve plot figures can be "inlined" within the Spyder workspace Plot Pane instead of cascaded across the desktop. Unfortunately "inlined" plots are not interactive. This primarily affects the 3D plot presented in figure 12. Instead of being able to rotate the plot for best viewing angle, the "elev" and "azim" arguments in figure 12's "ax.view_init()" procedure call have to be modified and the program rerun. It's best to click on the "X" (or press Ctrl+Shift+W) with the Plots Pane selected to remove all plots before rerunning propNav.py.
 
 To run **pyThreeD** from within the Spyder IDE application, a custom run configuration must be assigned to the pyThreeD.py file in which "Execute in an external system system terminal" is selected and *pyThreeD.py CaseId \[0|1]* is specified for "Command line options" within the "Console" section of the "Run configuration per file" dialog box.
 
@@ -201,6 +225,8 @@ Although references [3] through [5] were not consulted during development of the
 
 There are numerous YouTube videos presenting 3-DOF kinematic and 6-DOF dynamic missile models with implementations of simplified to complete proportional navigation guidance control loops. In most cases the models are built using MATLAB and Simulink, which tends to hide technical details within layers of widget abstraction. The purpose of this rudimentary Python model is to provide readily accessible code incorporating fundamental simulation features without depending on black box routines hiding implementation details. The proportional navigation formulations based on engagement kinematics, and integration of equations of motion state variable derivates are obvious, even to the most casual observer.
 
-The Python 3 **pyThreeD** program was developed as an alternative to the X11/C **threeD** program for those not familiar with X servers and Cygwin, or not inclined to expend effort installing either on a Windows platform. The Matplotlib module was selected to display 3D rendering instead of a more capable and efficient graphics library, such as OpenGL, in order to utilize the draw3D module interactively from within a Jupyter notebook; as demonstrated with the provided [pyThreeD.ipynb](./pyThreeD.ipynb) notebook file. Neither of these programs are representative of modern 3D rendering techniques with current graphics hardware and drivers, but what they lack in rendering speed and image quality is counter-balanced by their simplicity and universality. The original X11/C threeD program is nearly 25 years old, yet still compatible with the latest X11 servers. It's possible the Python pyThreeD variant may share the same longevity.
+The runtime display of 3D engagement animation as simple line plots provides visualization of missile/target engagement geometry and proportional navigation solutions without incurring a significant processing time penalty during integration of kinematic differential equations of motion. To display 3D engagement animation with rendered faceted shape models of target and missile, the **pyThreeD** and **threeD** programs can be used to process TXYZ.OUT trajectory data files written by **propNav**.
+
+he Python 3 **pyThreeD** program was developed as an alternative to the X11/C **threeD** program for those not familiar with X servers and Cygwin, or not inclined to expend effort installing either on a Windows platform. The Matplotlib module was selected to display 3D rendering instead of a more capable and efficient graphics library, such as OpenGL, in order to utilize the draw3D module interactively from within a Jupyter notebook; as demonstrated with the provided [pyThreeD.ipynb](./pyThreeD.ipynb) notebook file. Neither of these programs are representative of modern 3D rendering techniques with current graphics hardware and drivers, but what they lack in rendering speed and image quality is counter-balanced by their simplicity and universality. The original X11/C threeD program is nearly 25 years old, yet still compatible with the latest X11 servers. It's possible the Python pyThreeD variant may share the same longevity.
 
 I developed the X11/C threeD variant on a dual boot Toshiba Satellite 430CDT laptop with Windows 98 and RedHat Linux 5.1 in 1999. By 2001 it was installed and running on a dual boot Dell Precision WorkStation 530 with Windows 2000 and RedHat Linux 7.1, and by 2004 on a Sony Vaio laptop with Windows XP and Cygwin 1.5.
