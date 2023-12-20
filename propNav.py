@@ -1441,7 +1441,7 @@ if __name__ == "__main__":
         print("Press Right Arrow key to step animation one frame forward in time.")
         print("Press Left Arrow key to step animation one frame backward in time.")
         print("Press Space bar to toggle pause/unpause.")
-        print("Press X key to exit animation (press Right Arrow key restart).")
+        print("Press X key to exit animation (press Up Arrow key start replay).")
         print("Press Esc key to exit Figure 13.")
         
         while not doneflag:
