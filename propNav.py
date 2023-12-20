@@ -1421,7 +1421,8 @@ if __name__ == "__main__":
             i = i + 1
             
     if SHOW_ANIM:
-        # Display location of actual or missed intercept.
+        
+        # Display location of actual or missed intercept.      
         fig3D.canvas.restore_region(bckgrnd)
         for a in (anim3D(istop)):
             ax3D.draw_artist(a)
