@@ -173,7 +173,7 @@ If the "PLOT_DATA" flag in the propNav.py file is set to true, then upon complet
 The first figure is a plot depicting closing distances at time-of-intercept and for three time steps immediately preceding time-of-intercept. The last figure is a 3D plot of missile/target engagement as illustrated in the image below. This desktop displayed plot is interactive and can be rotated to different viewing angles.
 
  <p align="center">
-  <img src="./img/Figure_12_1243.png" width="600" height="600" alt="Figure 12 for engagement saved in TXYZ.OUT.1243"/><br>
+  <img src="./img/Figure_12_1243.png" width="640" height="640" alt="Figure 12 for engagement saved in TXYZ.OUT.1243"/><br>
   Figure 12 for engagement saved in TXYZ.OUT.1243
  </p>
 
