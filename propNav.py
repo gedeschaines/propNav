@@ -222,8 +222,8 @@ else:
 
 PRINT_DATA = False  # Controls printing of collected data (for debugging)
 PLOT_DATA  = False  # Controls plotting of collected data
-SHOW_ANIM  = False  # Controls showing interactive 3D engagement animation 
-SAVE_ANIM  = True   # Controls saving/showing 3D engagement animation
+SHOW_ANIM  = True   # Controls showing interactive 3D engagement animation 
+SAVE_ANIM  = False  # Controls saving/showing 3D engagement animation
 PRINT_TXYZ = False  # Controls printing TXYZ.OUT file
 
 ###
