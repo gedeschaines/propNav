@@ -1398,12 +1398,6 @@ if __name__ == "__main__":
     
     collectData(i, t, S)
     
-    if SHOW_ANIM:
-        fig3D.canvas.restore_region(bckgrnd)
-        for a in (anim3D(i)):
-            ax3D.draw_artist(a)
-        blit3D(fig3D, ax3D, backend)
-        
     istop = i
     iend  = istop + 1
     
