@@ -124,7 +124,7 @@ PNAV    = PN_PURE
 global Nm, Nt
 
 Nm = 4    # proportional navigation constant
-Nt = 6.0  # target turning acceleration (g's)
+Nt = 3.0  # target turning acceleration (g's)
 
 # Set missile type and acceleration maximum.
 
@@ -1518,7 +1518,7 @@ if __name__ == "__main__":
                                        cache_frame_data=True,
                                        interval=interval, repeat=False)
         print("\nCreating animation video; presentation will begin shortly...")
-        writer = Writer(fps=FPS, codec='libx264',
+        writer = Writer(fps=FPS, codec='h264',
                         metadata=dict(artist='propNav'),
                         bitrate=-1)
         sbuff = StringIO()
