@@ -63,6 +63,12 @@
 #      available at www.dst.defence.gov.au:
 #      https://www.dst.defence.gov.au/publication/integrated-navigation-guidance-and-control-missile-systems-3-d-dynamic-model
 #
+#  [7] David Hosier, "Avoiding Gimbal Lock in a Trajectory Simulation",
+#      U.S. Army Armament Research, Development and Engineering Center
+#      ARDEC, METC, Technical Report ARMET-TR-17051, Picatinny Arsenal, New
+#      Jersey, July 2018. Web Available at discover.dtic.mil:
+#      https://apps.dtic.mil/sti/pdfs/AD1055301.pdf
+# 
 # Disclaimer:
 #
 # See DISCLAIMER
@@ -93,14 +99,21 @@ except ImportError:
     print("* Error: RK4_Solver class required.")
     sys.exit()
 
-
 ###
-### File Scope Constants and Global Variables
+### File/Module Scope Constants and Global Variables
 ###
 
 RPD = atan(1.0)/45.0  # radians per degree
 DPR = 1.0/RPD         # degrees per radian
 g   = 9.80665         # gravitational acceleration at sea-level (meters/s/s)
+
+# Set processing output control flags.
+
+PRINT_DATA = False  # Controls printing of collected data (for debugging)
+PLOT_DATA  = False  # Controls plotting of collected data
+SHOW_ANIM  = True   # Controls showing interactive 3D engagement animation 
+SAVE_ANIM  = False  # Controls saving/showing 3D engagement animation
+PRINT_TXYZ = False  # Controls printing TXYZ.OUT file
 
 # Unit vectors for inertial Cartesion frame X,Y,Z axes.
 
@@ -112,7 +125,7 @@ Uzi = np.array([0.0, 0.0, 1.0])
 
 # Proportional Navigation law (method) selection.
 
-PN_TRUE = 1  # Default
+PN_TRUE = 1
 PN_PURE = 2
 PN_ZEM  = 3  # Zero Effort Miss
 PN_ATPN = 4  # Augmented True Proportional Navigation
@@ -198,17 +211,24 @@ else:
 global UWt
 
 if MSL == SAM:
-    UWt = Uzi  # for level turn in XY plane
-    #UWt = np.array([-0.2418, 0.2418, 0.9397])  # for diving turn
+    UWt = Uzi  # for level leftward turn in XY plane
+    #UWt = -Uzi  # for level rightward turn in XY plane
+    #UWt = np.array([-0.2418, -0.2418, -0.9397])  # shallow diving leftward turn
+    #UWt = np.array([-0.2418, -0.2418,  0.9397])  # shallow diving rightward turn
+    #UWt = np.array([-0.5657,  0.5657, -0.6000])  # steep climbing leftward turn
+    #UWt = np.array([-0.5657,  0.5657,  0.6000])  # steep climbing rightward turn
 else:
     UWt = Uyi  # for climbing turn in XZ plane
+    #UWt = -Uyi  # for diving turn in XZ plane
+    #UWt = np.array([0.5657, 0.6000, 0.5657])  # steep rightward climbing turn
+    #UWt = np.array([0.0000, 0.2500, 0.9682])  # shallow rightward climbing turn
 UWt = UWt/la.norm(UWt)
 
 # Set integration time step size and simulation stop time (sec).
 
 T_STEP = 0.001
 if MSL == SAM:
-    T_STOP =  5.5
+    T_STOP = 8.0
 else:
     if ((int(Nt) == 3) and (int(Nm) == 3)) and \
         ((PNAV == PN_TRUE) or (PNAV == PN_ATPN) or (PNAV == PN_APPN)):
@@ -216,16 +236,8 @@ else:
         T_STOP = 14.5
     else:
         # For Section 3, Modules 3 & 4, Section 4, Module 4 of ref [4].
-        T_STOP = 12.5
+        T_STOP = 14.5
     
-# Set processing output control flags.
-
-PRINT_DATA = False  # Controls printing of collected data (for debugging)
-PLOT_DATA  = False  # Controls plotting of collected data
-SHOW_ANIM  = True   # Controls showing interactive 3D engagement animation 
-SAVE_ANIM  = False  # Controls saving/showing 3D engagement animation
-PRINT_TXYZ = False  # Controls printing TXYZ.OUT file
-
 ###
 ### Procedures for Proportional Navigation Guidance model
 ###
@@ -336,7 +348,7 @@ def az_el_of_V(V):
     # Note: DPR is global.
     U  = Uvec(V)
     az = atan2(U[1], U[0])*DPR
-    el = atan(U[2]/la.norm([U[0], U[1]]))*DPR
+    el = atan2(U[2], la.norm([U[0], U[1]]))*DPR
     return az, el  # Note: az and el in degrees.
 
 def setVm(vmag, az, el):
@@ -472,6 +484,15 @@ def Amslc(Rlos, Vt, At, Vm, N):
         # Create inertial to missile body rotation matrix
         maz, mel = az_el_of_V(Vm)
         Mbi = Mrot(maz*RPD, mel*RPD, 0.0)
+        """
+        try:
+            np.testing.assert_almost_equal(la.norm(np.matmul(Mbi, Mbi.transpose())), 
+                                           sqrt(3.0), 6)
+        except:
+             print('Msl:\n', np.matmul(Mbi, Mbi.transpose()))
+             print(la.norm(np.matmul(Mbi, Mbi.transpose())))
+             sys.exit()
+        """
         # See derivation of equation (3.8) in ref [6].
         #
         if PNAV == PN_APPN:
@@ -525,56 +546,103 @@ def Amsla(Amcmd, Ammax):
         return np.dot(Ammax, Uvec(Amcmd))
     return Amcmd
 
-def Atgt(UWt, Vt, n):
+def Atgt(UWt, Pt, Vt, n, TgtTheta):
     """
     This routine calculates target inertial linear acceleration
-    for given inertial angular velocity direction unit vector,
-    inertial linear velocity, and turning g's.
+    and pitch rate for given inertial angular velocity direction
+    unit vector, inertial linear velocity, turning g's, and pitch
+    angle.
     
     Globals
     -------
-    g : float
+    g : float (read only)
         gravitional acceleration magnitude
-
+    DPR: float (read only)
+        degrees per radian
+    RPD: float (read only)
+        radians per degree
+        
     Parameters
     ----------
     UWt : float 3-vector
         Target angular velocity direction unit vector (i.e.,
         direction frame rotation axis points in inertial space).
+    Pt : float 3-vector
+        Target inertial position.
     Vt : float 3-vector
         Target inertial velocity.
     n : float 
         Target turning acceleration (normal to UWt) magnitude 
         in g's.
+    TgtTheta : float
+        Target pitch angle in radians.
 
     Returns
     -------
     At : float 3-vector
         Target inertial acceleration.
-
+    TgtThetaDot : float
+        Target pitch angle rotation rate in radians/sec.
+        
     """
     if n != 0.0:
         magVt = la.norm(Vt)
-        # Calculate lift g's loss due to pitch angle.
-        theta = pitchAngle(Vt)
-        loss  = sin(theta)
         # Calculate target az and el in degrees.
         taz, tel = az_el_of_V(Vt)
         # Set target body frame rotation axis.
         if abs(np.dot(UWt,Uyi)) < 0.0001:
             UWtb = -UWt  # +yawing about -zb axis
         else:
-            UWtb = UWt   # +pitching about +zb axis 
+            UWtb = UWt   # +pitching about +yb axis
+        # Compute inertial to body transformation matrix
+        if (abs(UWtb[1]) > 0.9999 and TgtTheta*DPR > 85.0) or \
+           (abs(UWtb[1]) < 0.9999 and (tel > 85 and TgtTheta*DPR > 85)):
+            # Approaching gimbal lock; form direction cosine matrix
+            # using position pointing vector as derived in eqs (25)
+            # thru (30) on pg 5 of ref [7].
+            i = Uvec(Vt)
+            r = np.array([20000.0, Pt[1], 20000.0]) - Pt
+            j = Uvec(np.cross(r, i))
+            k = Uvec(np.cross(i, j))
+            Mbi = np.zeros([3,3])
+            Mbi[0,0] = i[0]
+            Mbi[0,1] = i[1]
+            Mbi[0,2] = i[2]
+            Mbi[1,0] = j[0]
+            Mbi[1,1] = j[1]
+            Mbi[1,2] = j[2]
+            Mbi[2,0] = k[0]
+            Mbi[2,1] = k[1]
+            Mbi[2,2] = k[2]
+            UWtb = np.matmul(Mbi, UWt)
+            # Calculate lift g's loss due to pitch angle.
+            loss = sin(TgtTheta)*np.sign(cos(TgtTheta))
+        else:
+            # Use ENU coordinate transformation matrix.
+            Mbi = Mrot(taz*RPD, tel*RPD, 0.0)
+            # Calculate lift g's loss due to pitch angle.
+            theta = pitchAngle(Vt)
+            loss  = sin(theta)
+        """
+        try:
+            np.testing.assert_almost_equal(la.norm(np.matmul(Mbi, Mbi.transpose())), 
+                                           sqrt(3.0), 6)
+        except:
+            print('Tgt:\n', np.matmul(Mbi, Mbi.transpose()))
+            print(la.norm(np.matmul(Mbi, Mbi.transpose())))
+            sys.exit()
+        """    
         # Rotate inertial Vt into target body frame.
-        Mbi = Mrot(taz*RPD, tel*RPD, 0.0)
         Vtb = np.matmul(Mbi, Vt)
         # Calculate inertial acceleration in target body frame.
-        Atb = np.cross((((n-loss)*g)/magVt)*UWtb, Vtb.flatten())
+        TgtThetaDot = ((n-loss)*g)/magVt
+        Atb = np.cross(TgtThetaDot*UWtb, Vtb.flatten())
         # Rotate inertial acceleration into inertial space frame.
         At = np.matmul(Mbi.transpose(), Atb)
     else:
+        TgtThetaDot = 0.0
         At = np.array([0.0, 0.0, 0.0])
-    return At
+    return At, TgtThetaDot
 
 def pitchAngle(Vt):   
     theta = atan2(Vt[2], la.norm([Vt[0], Vt[1]]))
@@ -601,11 +669,11 @@ def bankAngle(At, Vt):
 
 # Initial values for state variables array.
 
-nSvar = 13               # number of state variables
+nSvar = 14               # number of state variables
 S     = np.zeros(nSvar)  # state variables
 dS    = np.zeros(nSvar)  # state derivatives
 
-def setS(S, Vt, Pt, Vm, Pm):
+def setS(S, Vt, Pt, Vm, Pm, TgtTheta):
     # Note: S[0] is t (time).
     S[1]  = Vt[0]
     S[2]  = Vt[1]
@@ -619,6 +687,7 @@ def setS(S, Vt, Pt, Vm, Pm):
     S[10] = Pm[0]
     S[11] = Pm[1]
     S[12] = Pm[2]
+    S[13] = TgtTheta
     return S
 
 def getVtOfS(S):
@@ -635,9 +704,10 @@ def getS(S):
     Pt = getPtOfS(S)
     Vm = getVmOfS(S)
     Pm = getPmOfS(S)
-    return Vt, Pt, Vm, Pm
+    TgtTheta = S[13]
+    return Vt, Pt, Vm, Pm, TgtTheta
 
-def setSdot(Sdot, At, Vt, Am, Vm):
+def setSdot(Sdot, At, Vt, Am, Vm, TgtThetaDot):
     # Note: Sdot[0] is dt (1.0).
     Sdot[1]  = At[0]
     Sdot[2]  = At[1]
@@ -651,6 +721,7 @@ def setSdot(Sdot, At, Vt, Am, Vm):
     Sdot[10] = Vm[0]
     Sdot[11] = Vm[1]
     Sdot[12] = Vm[2]
+    Sdot[13] = TgtThetaDot
     return Sdot
 
 def getAtOfSdot(Sdot):
@@ -667,19 +738,18 @@ def getSdot(Sdot):
     Vt = getVtOfSdot(Sdot)
     Am = getAmOfSdot(Sdot)
     Vm = getVmOfSdot(Sdot)
-    return At, Vt, Am, Vm
+    TgtThetaDot = Sdot[13]
+    return At, Vt, Am, Vm, TgtThetaDot
 
-def dotS2(dS, At, Vt, Amcmd, Vm):
-    # Note: Ammax is global.
+def dotS2(dS, At, Vt, Amcmd, Vm, TgtThetaDot):
     global Ammax
-    dS = setSdot(dS, At, Vt, Amsla(Amcmd, Ammax), Vm)
+    dS = setSdot(dS, At, Vt, Amsla(Amcmd, Ammax), Vm, TgtThetaDot)
     return dS
 
-def dotS1(dS, Ptm, Vt, Vm):
-    # Note: UWt, Nt and Nm are global.
+def dotS1(dS, Pt, Ptm, Vt, Vm, TgtTheta):
     global UWt, Nt, Nm
-    At = Atgt(UWt ,Vt, Nt)
-    dS = dotS2(dS, At, Vt, Amslc(Ptm, Vt, At, Vm, Nm), Vm)
+    At, TgtThetaDot = Atgt(UWt, Pt, Vt, Nt, TgtTheta)
+    dS = dotS2(dS, At, Vt, Amslc(Ptm, Vt, At, Vm, Nm), Vm, TgtThetaDot)
     return dS
 
 def dotS(n, S):
@@ -702,20 +772,20 @@ def dotS(n, S):
     dS    = np.zeros(n)
     dS[0] = 1.0  # d(t)/dt
     
-    Vt, Pt, Vm, Pm = getS(S)
+    Vt, Pt, Vm, Pm, TgtTheta = getS(S)
 
-    dS = dotS1(dS, Prel(Pt,Pm), Vt, Vm)
+    dS = dotS1(dS, Pt, Prel(Pt,Pm), Vt, Vm, TgtTheta)
     
     return dS
 
 def Stop(S):
-    Vt, Pt, Vm, Pm = getS(S)
+    Vt, Pt, Vm, Pm, TgtTheta = getS(S)
     if (S[0] >= T_STOP) or (np.dot(Prel(Vm,Vt), Uvec(Prel(Pt, Pm))) < 0.0):
         return True
     return False
 
 def Dclose(S):
-    Vt, Pt, Vm, Pm = getS(S)
+    Vt, Pt, Vm, Pm, TgtTheta = getS(S)
     dtm = la.norm(Prel(Pt, Pm))
     return dtm
 
@@ -788,7 +858,7 @@ def collectData(i, t, S):
     global LastPorY, LastWsgn, LastAsgn
    
     # Get current target and missile states.
-    Vt, Pt, Vm, Pm = getS(S)
+    Vt, Pt, Vm, Pm, TgtTheta = getS(S)
     
     # Get current missile azimuth and elevation.
     maz, mel = az_el_of_V(Vm)
@@ -803,8 +873,8 @@ def collectData(i, t, S):
     
     # Get current target and missile state derivatives.
     dS = dotS(nSvar, S)
-    dVt, dPt, dVm, dPm = getSdot(dS)
-            
+    dVt, dPt, dVm, dPm, TgtThetaDot = getSdot(dS)
+    
     # Calculate current time-to-go, LOS rate, closing velocity,
     # closing distance, missile acceleration in g's, and ZEM.
 
@@ -835,9 +905,11 @@ def collectData(i, t, S):
     
     Vc, Tgo = calcVcTgo(Pt, Vt, Pm, Vm)
     
+    """
     np.testing.assert_almost_equal(vcls, Vc, 3)
     np.testing.assert_almost_equal(tgo, Tgo, 4)
-             
+    """
+         
     # Display current missile and target states and
     # intercept status; collect data for plotting
     # or printing.
@@ -915,7 +987,6 @@ def collectData(i, t, S):
 ###
 ### Procedures for 3D engagement animation
 ###
-
 
 def onPress(event):
     global nincr, iloop, istop, paused, quitflag, doneflag
@@ -1194,67 +1265,69 @@ if __name__ == "__main__":
                 SAVE_ANIM = False
             
     if SHOW_ANIM or SAVE_ANIM:
-        istop = None
         fig3D = plt.figure(13, figsize=(6,6), dpi=100)
         ax3D  = fig3D.add_subplot(111, projection='3d',
                                   autoscale_on=False, animated=False)
-        linePt = Line3D([], [], [], color='r', ls=' ', lw=1.0,  # target in 3D space
+        # Instantiate artist for each line/point to be drawn on 3D plot.
+        linePt = Line3D([], [], [], color='r', ls=' ', lw=1.0,
                         marker='s', mew=1.0, mec='r', mfc='w',
-                        label='Target', animated=False)
-        linePm = Line3D([], [], [], color='b', ls=' ', lw=1.0,  # missile in 3D space
-                        marker='x', mew=1.0, mec='b', mfc='w',
-                        label='Missile', animated=False)
-        linePx = Line3D([], [], [], color='k', ls=' ', lw=1.0,  # intercept in 3D space
+                        label='Target', animated=False)  # target in 3D space
+        linePm = Line3D([], [], [], color='b', ls=' ', lw=1.0,
+                        marker='x', mew=0.5, mec='b', mfc='w',
+                        label='Missile', animated=False)  # missile in 3D space
+        linePx = Line3D([], [], [], color='k', ls=' ', lw=1.0,
                         marker=' ', mew=1.0, mec='k', mfc='k',
-                        label='', animated=False)
-        linePtv = Line3D([], [], [], color='r', ls='-', lw=1.0, # tgt vel in 3D space
-                         marker=' ', mew=1.0, mec='r', mfc='r',
-                         label='', animated=False)
-        linePmv = Line3D([], [], [], color='b', ls='-', lw=1.0, # msl vel in 3D space
-                         marker=' ', mew=1.0, mec='b', mfc='b',
-                         label='', animated=False)
-        linePma = Line3D([], [], [], color='m', ls='-', lw=1.0, # msl acc in 3D space
-                         marker=' ', mew=1.0, mec='m', mfc='m',
-                         label='Command Accel', animated=False)
-        linePwr = Line3D([], [], [], color='g', ls='-', lw=1.0, # Rlos ang vel in 3D space
-                         marker=' ', mew=1.0, mec='g', mfc='g',
-                         label='Rlos Ang Vel', animated=False)
-        linePttrk = Line3D([], [], [], color='r', ls='-', lw=2.0,  # target track in 3D space
-                           marker=' ', mew=1.0, mec='r', mfc=None,
-                           label='', animated=False)
-        linePtxy = Line3D([], [], [], color='r', ls=':', lw=1.0,  # target track in XY plane
-                           marker=' ', mew=1.0, mec='r', mfc=None,
-                           label='', animated=False)
-        linePtxz = Line3D([], [], [], color='r', ls=':', lw=1.0,  # target track in XZ plane
-                           marker=' ', mew=1.0, mec='r', mfc=None,
-                           label='', animated=False)
-        linePmtrk = Line3D([], [], [], color='b', ls='-', lw=2.0,  # missile track in 3D space
-                           marker=' ', mew=1.0, mec='b', mfc=None,
-                           label='', animated=False)
-        linePmxy = Line3D([], [], [], color='b', ls=':', lw=1.0,  # missile track in XY plane
-                           marker=' ', mew=1.0, mec='b', mfc=None,
-                           label='', animated=False)
-        linePmxz = Line3D([], [], [], color='b', ls=':', lw=1.0,  # missile track in XZ plane
-                           marker=' ', mew=1.0, mec='b', mfc=None,
-                           label='', animated=False)
-        linePttgoxy = Line3D([], [], [], color='k', ls=':', lw=1.0,  # Estimated tgt Tgo loc in XY plane
-                              marker='s', mew=1.0, mec='r', mfc='w',
-                              label='', animated=False)
-        linePttgoxz = Line3D([], [], [], color='k', ls=':', lw=1.0,  # Estimated tgt Tgo loc in XZ plane
-                              marker='s', mew=1.0, mec='r', mfc='w',
-                              label='', animated=False)
-        linePmtgoxy = Line3D([], [], [], color='k', ls=':', lw=1.0,  # Estimated msl Tgo loc in XY plane
-                              marker='x', mew=1.0, mec='b', mfc=None,
-                              label='', animated=False)
-        linePmtgoxz = Line3D([], [], [], color='k', ls=':', lw=1.0,  # Estimated msl Tgo loc in XZ plane
-                              marker='x', mew=1.0, mec='b', mfc=None,
-                              label='', animated=False)
+                        label='', animated=False)  # intercept in 3D space
+        linePtv = Line3D([], [], [], color='r', ls='-', lw=1.0,
+                         marker=' ', mew=0.5, mec='r', mfc='r',
+                         label='', animated=False)  # tgt vel in 3D space
+        linePmv = Line3D([], [], [], color='b', ls='-', lw=1.0,
+                         marker=' ', mew=0.5, mec='b', mfc='b',
+                         label='', animated=False)  # msl vel in 3D space
+        linePma = Line3D([], [], [], color='m', ls='-', lw=1.0,
+                         marker=' ', mew=0.5, mec='m', mfc='m',
+                         label='Command Accel', animated=False)  # msl acc in 3D space
+        linePwr = Line3D([], [], [], color='g', ls='-', lw=1.0,
+                         marker=' ', mew=0.5, mec='g', mfc='g',
+                         label='Rlos Ang Vel', animated=False)  # Rlos ang vel in 3D space
+        linePttrk = Line3D([], [], [], color='r', ls='-', lw=1.0,
+                           marker=' ', mew=0.5, mec='r', mfc=None,
+                           label='', animated=False)  # target track in 3D space
+        linePtxy = Line3D([], [], [], color='r', ls=':', lw=0.5,
+                           marker=' ', mew=0.5, mec='r', mfc=None,
+                           label='', animated=False)  # target track in XY plane
+        linePtxz = Line3D([], [], [], color='r', ls=':', lw=0.5,
+                           marker=' ', mew=0.5, mec='r', mfc=None,
+                           label='', animated=False)  # target track in XZ plane
+        linePmtrk = Line3D([], [], [], color='b', ls='-', lw=1.0,
+                           marker=' ', mew=0.5, mec='b', mfc=None,
+                           label='', animated=False)  # missile track in 3D space
+        linePmxy = Line3D([], [], [], color='b', ls=':', lw=0.5,
+                           marker=' ', mew=0.5, mec='b', mfc=None,
+                           label='', animated=False)  # missile track in XY plane
+        linePmxz = Line3D([], [], [], color='b', ls=':', lw=0.5,
+                           marker=' ', mew=0.5, mec='b', mfc=None,
+                           label='', animated=False)  # missile track in XZ plane
+        linePttgoxy = Line3D([], [], [], color='k', ls=':', lw=1.0,
+                              marker='s', mew=0.5, mec='r', mfc='w',
+                              label='', animated=False)  # Estimated tgt Tgo loc in XY plane
+        linePttgoxz = Line3D([], [], [], color='k', ls=':', lw=1.0,
+                              marker='s', mew=0.5, mec='r', mfc='w',
+                              label='', animated=False)  # Estimated tgt Tgo loc in XZ plane
+        linePmtgoxy = Line3D([], [], [], color='k', ls=':', lw=1.0,
+                              marker='x', mew=0.5, mec='b', mfc=None,
+                              label='', animated=False)  # Estimated msl Tgo loc in XY plane
+        linePmtgoxz = Line3D([], [], [], color='k', ls=':', lw=1.0,
+                              marker='x', mew=0.5, mec='b', mfc=None,
+                              label='', animated=False)  # Estimated msl Tgo loc in XZ plane
+        # Set 3D plot title and axes labels.
         text = "3D Animation of missile/target engagement ({0}, N={1}, At={2})"\
-            .format(PN_LAWS[PNAV], int(Nm), int(Nt))
+                .format(PN_LAWS[PNAV], int(Nm), int(Nt))
         ax3D.set_title(text)
         ax3D.set_xlabel('X (meters)')
         ax3D.set_ylabel('Y (meters)')
         ax3D.set_zlabel('Z (meters)')
+        # Set/get 3D plot axes data limits; enable drawing grid lines.
         if MSL == SAM:
             ax3D.set_xlim3d([Pm0[0],  Pt0[0]+500.0])
             ax3D.set_ylim3d([Pm0[1],  Pm0[1]+(Pt0[0]+500-Pm0[0])])
@@ -1274,13 +1347,16 @@ if __name__ == "__main__":
                              floor(Pm0[2]/500.0)*500.0 +
                              (ceil(Pt0[0]/500.0)*500.0 - 
                               floor(Pm0[0]/500.0)*500.0)/2])
+            ax3D.set_aspect('equal')
         (xmin, xmax) = ax3D.get_xlim()
         (ymin, ymax) = ax3D.get_ylim()
         (zmin, zmax) = ax3D.get_zlim()
-        Qsfac = (xmax-xmin)/15.0
-        time_text = ax3D.text3D(xmin-500.0, ymax+100.0, zmax+(zmax-zmin)/4.0, '')    
-        #ax.set_aspect('equal')
         ax3D.grid()
+        # Set scale factor for drawing "quiver" vectors (i.e., Vt, Vm, Am, Wr).
+        Qsfac = abs(xmax-xmin)/15.0
+        # Instantiate artist for frame time to be drawn on 3D plot.
+        time_text = ax3D.text3D(xmin-500.0, ymax+100.0, zmax+(zmax-zmin)/4.0, '')
+        # Add line artists to 3D plot and set legend location.
         ax3D.add_line(linePt)
         ax3D.add_line(linePm)
         ax3D.add_line(linePma)
@@ -1299,6 +1375,7 @@ if __name__ == "__main__":
         ax3D.add_line(linePmtgoxy)
         ax3D.add_line(linePmtgoxz)
         ax3D.legend(loc='upper right')
+        # Set 3D plot viewing orientation, then draw everything.
         ax3D.view_init(elev=20.0, azim=220.0)
         fig3D.canvas.draw()
         if SHOW_ANIM:
@@ -1314,7 +1391,7 @@ if __name__ == "__main__":
      
     # Initialize state vector.
     
-    S = setS(S, Vt0, Pt0, Vm0, Pm0)
+    S = setS(S, Vt0, Pt0, Vm0, Pm0, pitchAngle(Vt0))
     
     # Instantiate Runge-Kutta 4th order ode solver, initialize
     # using current state with state time set to zero.
@@ -1326,9 +1403,10 @@ if __name__ == "__main__":
     
     ## Loop until termination event or simulation stop condition reached.
     
-    t = S[0]
-    i = 0
-    
+    t     = S[0]
+    i     = 0
+    istop = None  # used within onPress and anim3D procedures
+        
     while (not Stop(S)) and (i < nSamples):
         
         if i == 0 or PRINT_DATA or SHOW_ANIM or SAVE_ANIM or PLOT_DATA or PRINT_TXYZ:            
@@ -1382,7 +1460,7 @@ if __name__ == "__main__":
     t = S[0]
     
     if num_trys == max_trys:       
-        if t < tStop:
+        if t < tStop-tStep:
             print("\n*** Non-convergent Intercept ***")
         else:
             print("\n*** Insufficient Simulation Time ***")   
@@ -1422,11 +1500,14 @@ if __name__ == "__main__":
             
     if SHOW_ANIM:
         
-        # Display location of actual or missed intercept.      
+        # Display location of actual or missed intercept, then
+        # enter interactive replay loop.
+        
         fig3D.canvas.restore_region(bckgrnd)
         for a in (anim3D(istop)):
             ax3D.draw_artist(a)
         blit3D(fig3D, ax3D, backend)
+        fig3D.canvas.draw()
 
         nincr    = 0
         paused   = True
@@ -1489,7 +1570,7 @@ if __name__ == "__main__":
             else:
                 print("\nClose Figure 13 to terminate program.")
             plt.show(block=True)
-                 
+    
     if SAVE_ANIM:
         
         # Create and show the 3D engagement animation.
@@ -1529,7 +1610,7 @@ if __name__ == "__main__":
         else:
             print("\nAfter animation stops, close Figure 13 to terminate program.")
         plt.show()
- 
+    
     if PLOT_DATA:
         
         # Create and show the plot figures.
@@ -1794,6 +1875,7 @@ if __name__ == "__main__":
                            floor(Pmz[0]/500.0)*500.0 +
                             (ceil(Ptx[0]/500.0)*500.0 - 
                              floor(Pmx[0]/500.0)*500.0)/2])
+            ax.set_aspect('equal')
         ax.grid()
         # target in 3D space
         line1 = Line3D(Ptx[0:iend], Pty[0:iend], Ptz[0:iend],
@@ -1871,7 +1953,7 @@ if __name__ == "__main__":
         except AttributeError:
             # Possibly running "inline".
             plt.show()
-        
+    
     if PRINT_TXYZ:
             
         # Set constant missile spin rate. This is purely a 
