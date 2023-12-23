@@ -217,7 +217,7 @@ Although references [3] through [5] were not consulted during development of the
 
 \[6] Farham A. Faruqi, "Integrated Navigation, Guidance, and Control of Missile Systems: 3-D Dynamic Model", Weapon Systems Division DSTO, DSTO-TR-2805, Feb., 2013. [Web available at www.dst.defence.gov.au](https://www.dst.defence.gov.au/publication/integrated-navigation-guidance-and-control-missile-systems-3-d-dynamic-model)
 
-\[7] David Hosier, "Avoiding Gimbal Lock in a Trajectory Simulation", U.S. Army Armament Research, Development and Engineering Center ARDEC, METC, Technical Report ARMET-TR-17051, Picatinny Arsenal, New Jersey, July 2018. [Web Available at discover.dtic.mil](https://apps.dtic.mil/sti/pdfs/AD1055301.pdf)
+\[7] David Hosier, "Avoiding Gimbal Lock in a Trajectory Simulation", U.S. Army Armament Research, Development and Engineering Center ARDEC, METC, Technical Report ARMET-TR-17051, Picatinny Arsenal, New Jersey, July 2018. [Web available at discover.dtic.mil](https://apps.dtic.mil/sti/pdfs/AD1055301.pdf)
 
 ## Disclaimers ##
 
