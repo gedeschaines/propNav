@@ -596,7 +596,7 @@ def Atgt(UWt, Pt, Vt, n, TgtTheta):
             UWtb = UWt   # +pitching about +yb axis
         # Compute inertial to body transformation matrix
         if (abs(UWtb[1]) > 0.9999 and TgtTheta*DPR > 85.0) or \
-           (abs(UWtb[1]) < 0.9999 and (tel > 85 and TgtTheta*DPR > 85)):
+           (abs(UWtb[1]) < 0.9999 and (tel > 85.0 and TgtTheta*DPR > 85.0)):
             # Approaching gimbal lock; form direction cosine matrix
             # using position pointing vector as derived in eqs (25)
             # thru (30) on pg 5 of ref [7].
