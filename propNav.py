@@ -47,15 +47,15 @@
 #      "Basic Principles of Homing Guidance", rev 2018, Johns
 #      Hopkins APL Technical Digest, VOL 29, No 1, 2010. Web
 #      available at secwww.jhuapl.edu/techdigest:
-#      https://secwww.jhuapl.edu/techdigest/Content/techdigest/pdf/V29-N01/29-01-Palumbo_Principles_Rev2018.pdf)
+#      https://secwww.jhuapl.edu/techdigest/Content/techdigest/pdf/V29-N01/29-01-Palumbo_Principles_Rev2018.pdf
 #
 #  [4] Ben Dickinson, "Missile Guidance Fundamentals Tutorial", 
 #      last updated Oct. 15, 2023. Web available at www.youtube.com:
-#      https://www.youtube.com/playlist?list=PLcmbTy9X3gXt02z1wNy4KF5ui0tKxdQm7)
+#      https://www.youtube.com/playlist?list=PLcmbTy9X3gXt02z1wNy4KF5ui0tKxdQm7
 #
 #  [5] Ben Dickinson, "Guidance from Optimal Control",
 #      last updated Apr. 2, 2023. Web available at www.youtube.com:
-#      https://www.youtube.com/playlist?list=PLcmbTy9X3gXsh-o1W60E7rEA35igNj__q)
+#      https://www.youtube.com/playlist?list=PLcmbTy9X3gXsh-o1W60E7rEA35igNj__q
 #
 #  [6] Farham A. Faruqi, "Integrated Navigation, Guidance, and
 #      Control of Missile Systems: 3-D Dynamic Model", Weapon 
@@ -233,10 +233,10 @@ else:
     if ((int(Nt) == 3) and (int(Nm) == 3)) and \
         ((PNAV == PN_TRUE) or (PNAV == PN_ATPN) or (PNAV == PN_APPN)):
         # For Section 2, Module 3 of ref [5].
-        T_STOP = 14.5
+        T_STOP = 16.0
     else:
         # For Section 3, Modules 3 & 4, Section 4, Module 4 of ref [4].
-        T_STOP = 14.5
+        T_STOP = 16.0
     
 ###
 ### Procedures for Proportional Navigation Guidance model
@@ -1130,11 +1130,14 @@ def anim3D(n):
     linePmv.set_data_3d(np.array([Pmx[n], Pmx[n]+QVm[0]], dtype=object),
                         np.array([Pmy[n], Pmy[n]+QVm[1]], dtype=object),
                         np.array([Pmz[n], Pmz[n]+QVm[2]], dtype=object))
+
     QAm = Uvec(np.array([Amx[n], Amy[n], Amz[n]]))*abs(Acmg[n])*Qsfac/Gmmax[MSL]
+    if MSL == AAM: QAm *= 2.5  # enlarge to be visible
     linePma.set_data_3d(np.array([Pmx[n], Pmx[n]+QAm[0]], dtype=object),
                         np.array([Pmy[n], Pmy[n]+QAm[1]], dtype=object),
-                        np.array([Pmz[n], Pmz[n]+QAm[2]], dtype=object))                
+                        np.array([Pmz[n], Pmz[n]+QAm[2]], dtype=object))
     QWr = Uvec(np.array([Wrx[n], Wry[n], Wrz[n]]))*min(abs(LOSd[n]),6.0)*Qsfac/6.0
+    if MSL == AAM: QWr *= 2.5  # enlarge to be visible
     linePwr.set_data_3d(np.array([Pmx[n], Pmx[n]+QWr[0]], dtype=object),
                         np.array([Pmy[n], Pmy[n]+QWr[1]], dtype=object),
                         np.array([Pmz[n], Pmz[n]+QWr[2]], dtype=object))
