@@ -27,7 +27,7 @@ from draw3D import DBG_LVL, Pnt3D
 
 mxvcnt = 32       # maximum vertices in clipped polygon 
 zmin   = 0.1      # minimum z clipping distance
-zmax   = 10000.0  # maximum z clipping distance
+zmax   = 20000.0  # maximum z clipping distance
 
 
 def edgeCode(edge, a_pt):
@@ -35,7 +35,7 @@ def edgeCode(edge, a_pt):
     Calculates edge code for given pyramidal frustum edge and
     polygon vertex point.
     """
-
+    
     # Load point into viewing pyramid space.
 
     x =  a_pt.Y
@@ -180,7 +180,7 @@ def polyClip(pcnt, vcnt, vlist):
     """
     Clips given polygon to 3D viewing pyramidal frustum.
     """
-
+    
     while True:
         # Check all polygon points against each frustum edge.
         pcntp1 = pcnt + 1

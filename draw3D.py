@@ -148,12 +148,13 @@ Colors = ['w', 'k', 'r', 'g', 'b', 'c', 'y', 'tab:brown']
 
 class Draw3D:
     
-    def __init__(self, txyzFile="TXYZ.OUT", w=600, h=600, 
+    def __init__(self, txyzFile="TXYZ.OUT", mslType=1, w=600, h=600, 
                        fig=None, ax=None, imgSave=False, imgFPS=50):
         
         # TXYZ file information.
         
         self.txyzFile = txyzFile
+        self.mslType = mslType
         self.lfnt = None
         
         # FOV information.
@@ -181,7 +182,7 @@ class Draw3D:
                   (self.xMax, self.yMax))
             print("Draw3D.__init__:  fovcx,fovcy = %f %f" % \
                   (self.fovcx, self.fovcy))
-                
+        
         # Compute viewport FOV focal length and scale factors.
         
         self.zoom = fOne
@@ -425,20 +426,36 @@ class Draw3D:
         """
         Transforms grid world space coordinates to viewport coordinates.
         """
-    
-        self.GridPt1[0].X =  2000.0
-        self.GridPt1[0].Y = -2000.0
-        self.GridPt1[0].Z =     0.0
-        self.GridPt1[1].X =  2000.0
-        self.GridPt1[1].Y =  2000.0
-        self.GridPt1[1].Z =     0.0
-        self.GridPt1[2].X = -2000.0
-        self.GridPt1[2].Y =  2000.0
-        self.GridPt1[2].Z =     0.0
-        self.GridPt1[3].X = -2000.0
-        self.GridPt1[3].Y = -2000.0
-        self.GridPt1[3].Z =     0.0
-
+        
+        if self.mslType == 1:
+            # SAM engagement scenario case
+            self.GridPt1[0].X =  2000.0
+            self.GridPt1[0].Y = -2000.0
+            self.GridPt1[0].Z =     0.0
+            self.GridPt1[1].X =  2000.0
+            self.GridPt1[1].Y =  2000.0
+            self.GridPt1[1].Z =     0.0
+            self.GridPt1[2].X = -2000.0
+            self.GridPt1[2].Y =  2000.0
+            self.GridPt1[2].Z =     0.0
+            self.GridPt1[3].X = -2000.0
+            self.GridPt1[3].Y = -2000.0
+            self.GridPt1[3].Z =     0.0
+        else:
+            # AAM engagement scenario case
+            self.GridPt1[0].X =  20000.0
+            self.GridPt1[0].Y = -16000.0
+            self.GridPt1[0].Z =      0.0
+            self.GridPt1[1].X =  20000.0
+            self.GridPt1[1].Y =   4000.0
+            self.GridPt1[1].Z =      0.0
+            self.GridPt1[2].X =      0.0
+            self.GridPt1[2].Y =   4000.0
+            self.GridPt1[2].Z =      0.0
+            self.GridPt1[3].X =      0.0
+            self.GridPt1[3].Y = -16000.0
+            self.GridPt1[3].Z =      0.0
+        
         for k in range(0,4):
             # Translate coordinates into viewport FOV reference frame.
             xd = self.GridPt1[k].X - self.fovpt.X
@@ -910,7 +927,10 @@ class Draw3D:
         
         self.polcnt = 0
         
-        lfni = open("./dat/grndpoly.dat", "rt")
+        if self.mslType == 1:
+            lfni = open("./dat/grndpoly1.dat", "rt")
+        else:
+            lfni = open("./dat/grndpoly2.dat", "rt")
         if lfni is not None:
             if DBG_LVL > 0:
                 print("Draw3D:  Loading polygons from file %s" % \

@@ -87,7 +87,7 @@ if __name__ == "__main__":
         
     File  = "./out/TXYZ.OUT." + CaseId
     title = "pyThreeD - " + File
-    
+      
     # Instantiate a matplotlib pyplot figure.
     
     #fig = plt.figure(figsize=(6.0,6.0), dpi=100.0)     # 465x462 viewport
@@ -120,7 +120,8 @@ if __name__ == "__main__":
     
     # Instantiate a Draw3D object.
     
-    draw3D = Draw3D(txyzFile=File, w=w, h=h, fig=fig, ax=ax,
+    msltyp = int(CaseId)//1000
+    draw3D = Draw3D(txyzFile=File, mslType=msltyp, w=w, h=h, fig=fig, ax=ax,
                     imgSave=img_Save, imgFPS=img_FPS)
     
     # Load object shape polygon data.
