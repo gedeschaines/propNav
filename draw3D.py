@@ -1076,7 +1076,8 @@ class Draw3D:
                 self.canvas.flush_events()
                 continue
             
-            # Save last missile position.
+            # Save last "true" missile position (i.e., that
+            # read from a previous ktot >= 0 record).
             if true_tsec > 0.0:
                 last_XM = XM
                 last_YM = YM
@@ -1377,5 +1378,14 @@ class Draw3D:
             self.canvas.update()
         self.canvas.flush_events()
         
+        if self.imgSave and ktot < 0:
+            # Save duplicate of last image to ensure final frame in an
+            # animated GIF or MP4 video file shows time of intercept.
+            sbuff = StringIO()
+            sbuff.write("./Ximg/img_%04hd.png" % (img_count))
+            img_fname = sbuff.getvalue()
+            sbuff.close()
+            self.fig.savefig(img_fname, format='png')
+                    
         self.lfnt.close()
         self.lfnt = None
