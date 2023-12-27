@@ -125,11 +125,11 @@ Uzi = np.array([0.0, 0.0, 1.0])
 
 # Proportional Navigation law (method) selection.
 
-PN_TRUE = 1
+PN_TRUE = 1  # With guidance command preservation (GCP1) per ref [3]
 PN_PURE = 2
-PN_ZEM  = 3  # Zero Effort Miss
-PN_ATPN = 4  # Augmented True Proportional Navigation
-PN_APPN = 5  # Augmented Pure Proportional Navigation
+PN_ZEM  = 3  # Zero Effort Miss per Section 3, Module 4 of ref [4]
+PN_ATPN = 4  # Augmented True Proportional Navigation per ref [6]
+PN_APPN = 5  # Augmented Pure Proportional Navigation per ref [6]
 PN_LAWS = {PN_TRUE:'True', PN_PURE:'Pure', PN_ZEM:'ZEM', 
            PN_ATPN:'ATPN', PN_APPN:'APPN'}
 PNAV    = PN_PURE
@@ -169,9 +169,9 @@ else:
     if ((int(Nt) == 3) and (int(Nm) == 3)) and \
        ((PNAV == PN_TRUE) or (PNAV == PN_ATPN) or (PNAV == PN_APPN)):
         # for Section 2, Module 3 of ref [5].
-        Pt0   = np.array([ 9144.0, 4572.0,    0.0])
+        Pt0   = np.array([ 9144.0, 6096.0, 3048.0])
         Vt0   = np.array([ -304.8,    0.0,    0.0])
-        Pm0   = np.array([    0.0, 4572.0,    0.0])
+        Pm0   = np.array([    0.0, 6096.0, 3048.0])
         magVm = 457.2
     else:
         # For Section 3, Modules 3 & 4, Section 4, Module 4 of ref [4].
@@ -222,6 +222,9 @@ else:
     #UWt = -Uyi  # for diving turn in XZ plane
     #UWt = np.array([0.5657, 0.6000, 0.5657])  # steep rightward climbing turn
     #UWt = np.array([0.0000, 0.2500, 0.9682])  # shallow rightward climbing turn
+    #UWt = np.array([0.5657,-0.6000,-0.5657])  # steep leftward diving turn
+    #UWt = np.array([0.0000,-0.2500,-0.9682])  # shallow leftward diving turn
+
 UWt = UWt/la.norm(UWt)
 
 # Set integration time step size and simulation stop time (sec).
@@ -233,10 +236,10 @@ else:
     if ((int(Nt) == 3) and (int(Nm) == 3)) and \
         ((PNAV == PN_TRUE) or (PNAV == PN_ATPN) or (PNAV == PN_APPN)):
         # For Section 2, Module 3 of ref [5].
-        T_STOP = 16.0
+        T_STOP = 14.5
     else:
         # For Section 3, Modules 3 & 4, Section 4, Module 4 of ref [4].
-        T_STOP = 16.0
+        T_STOP = 12.5
     
 ###
 ### Procedures for Proportional Navigation Guidance model
@@ -520,9 +523,24 @@ def Amslc(Rlos, Vt, At, Vm, N):
     elif PNAV == PN_PURE:
         Acmd = N*np.cross(Wlos(Vt, Vm, Rlos, Ulos), Vm)
     else: # PNAV == PN_TRUE
-        Vc   = la.norm(Vclose(Vt, Vm, Ulos))
-        Acmd = N*Vc*np.cross(Wlos(Vt, Vm, Rlos, Ulos), Ulos)
-        Acmd = Acmd - np.dot(Acmd, Uvec(Vm))*Uvec(Vm)  # no thrust control
+        UVm = Uvec(Vm)
+        Vc  = la.norm(Vclose(Vt, Vm, Ulos))
+        Ac  = N*Vc*np.cross(Wlos(Vt, Vm, Rlos, Ulos), Ulos)
+        # Apply guidance command preservation per eq (45) on pg 38 of ref [3].
+        Agcp = ((Ac[0] - np.dot(Ac, UVm))/np.dot(Ulos, UVm))*Ulos + Ac
+        Acmd = Agcp - np.dot(Agcp, UVm)*UVm  # no thrust control 
+        """
+        try:
+            np.testing.assert_almost_equal(np.dot(Agcp, UVm), Ac[0], 6)
+            np.testing.assert_almost_equal(np.dot(Agcp, Uvec(Ac)), la.norm(Ac), 6)
+        except:
+            print("\nAc:    (%8.3f, %8.3f, %8.3f)" % (Ac[0], Ac[1], Ac[2]))
+            print("Agcp:  (%8.3f, %8.3f, %8.3f)" % (Agcp[0], Agcp[1], Agcp[2]))
+            print("Acmd:  (%8.3f, %8.3f, %8.3f)" % (Acmd[0], Acmd[1], Acmd[2]))
+            print("||Ac||, ||Agcp||, ||Acmd||:  %8.3f  %8.3f  %8.3f" % \
+                  (la.norm(Ac), la.norm(Agcp), la.norm(Acmd)))
+        """
+        
     return Acmd
 
 def Amsla(Amcmd, Ammax):
@@ -644,7 +662,11 @@ def Atgt(UWt, Pt, Vt, n, TgtTheta):
         At = np.array([0.0, 0.0, 0.0])
     return At, TgtThetaDot
 
-def pitchAngle(Vt):   
+def pitchAngle(Vt):
+    # Note: The following expression returns values in the
+    #       range [-90.0, 90.0], and does not account for
+    #       instances where the target has pitched past 
+    #       +/-90 degrees.
     theta = atan2(Vt[2], la.norm([Vt[0], Vt[1]]))
     return theta  # Note: theta in radians.
 
@@ -1482,7 +1504,7 @@ if __name__ == "__main__":
     istop = i
     iend  = istop + 1
     
-    if (num_trys == max_trys) or (Dcls[istop] > MinMissDist):
+    if (num_trys == max_trys) or (Dclose(S) > MinMissDist):
         INTERCEPT = False
         print("\n*** Missile missed target.")
     else:
@@ -1996,6 +2018,9 @@ if __name__ == "__main__":
         #
         #  Note: Vectorized atan2 expression from pitchAngle()
         #        routine used for calculating THTm and THTt.
+        #        These equations do not account for instances
+        #        where the missile or target have pitched past
+        #        +/- 90 degrees.
         
         UVm  = Uvec(Vme[:,0:iend])
         PSIm  = np.arctan2(-UVm[0,1,0:iend], UVm[0,0,0:iend],)*DPR
