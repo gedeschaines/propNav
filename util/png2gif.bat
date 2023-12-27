@@ -89,7 +89,7 @@ rem       match that specified by fig = plt.figure(figsize=(w,h), dpi=###)
 
 :create_anim_gif
 echo "Creating animated gif file:  img_anim.gif @ 0.0!DELAY! sec/image"
-magick -size 800x600 -dispose None -delay !DELAY! !GIF_LIST! -loop 2 img_anim.gif
+magick -size 800x600 -dispose None -delay !DELAY! img_0???.gif -loop 2 img_anim.gif
 
 :exit0
 EndLocal
