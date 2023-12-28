@@ -259,10 +259,10 @@ class Draw3D:
                             'PHt' :"PHt= %8.3f"}
         
         self.TextCoords = {'time':(10,12), 'zoom':(10,24),
-                            'Xm' :(120,12), 'Ym' :(120,24), 'Zm' :(120,36),
-                            'PSm':(230,12), 'THm':(230,24), 'PHm':(230,36),
-                            'Xt' :(340,12), 'Yt' :(340,24), 'Zt' :(340,36),
-                            'PSt':(450,12), 'THt':(450,24), 'PHt':(450,36)}
+                            'Xm' :(90,12),  'Ym' :(90,24),  'Zm' :(90,36),
+                            'PSm':(170,12), 'THm':(170,24), 'PHm':(170,36),
+                            'Xt' :(250,12), 'Yt' :(250,24), 'Zt' :(250,36),
+                            'PSt':(330,12), 'THt':(330,24), 'PHt':(330,36)}
         
         
     def setFOVsfacs(self):
@@ -461,7 +461,7 @@ class Draw3D:
             xd = self.GridPt1[k].X - self.fovpt.X
             yd = self.GridPt1[k].Y - self.fovpt.Y
             zd = self.GridPt1[k].Z - self.fovpt.Z
-            # Rotate coordinated into viewport reference frame.
+            # Rotate coordinates into viewport reference frame.
             xs = self.dcx1*xd + self.dcy1*yd + self.dcz1*zd
             ys = self.dcx2*xd + self.dcy2*yd + self.dcz2*zd
             zs = self.dcx3*xd + self.dcy3*yd + self.dcz3*zd
@@ -974,7 +974,7 @@ class Draw3D:
                                  #backgroundcolor=Colors[Black],
                                  color=Colors[Black],
                                  fontname='monospace',
-                                 fontsize='small',
+                                 fontsize='x-small',
                                  ha="left",
                                  va="top",
                                  animated=False,

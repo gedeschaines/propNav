@@ -90,8 +90,8 @@ if __name__ == "__main__":
       
     # Instantiate a matplotlib pyplot figure.
     
-    #fig = plt.figure(figsize=(6.0,6.0), dpi=100.0)     # 465x462 viewport
-    fig = plt.figure(figsize=(8.0,6.0), dpi=100.0)     # 620x462 viewport
+    fig = plt.figure(figsize=(6.0,6.0), dpi=100.0)     # 465x462 viewport
+    #fig = plt.figure(figsize=(8.0,6.0), dpi=100.0)     # 620x462 viewport
     #fig = plt.figure(figsize=(8.0,8.0), dpi=100.0)     # 620x616 viewport
     #fig = plt.figure(figsize=(7.74,7.78), dpi=100.0)   # 600x599 viewport
     #fig = plt.figure(figsize=(10.0,8.0), dpi=100.0)    # 775x616 viewport
@@ -155,7 +155,9 @@ if __name__ == "__main__":
     print("Press Right Arrow key to speed animation up by 50 msec increments.")
     print("Press Space key to toggle pause/unpause.")
     print("Press X key to exit animation (press a mouse button to restart).")
-    print("Press Esc key to exit program.")
+    print("Press Q key to close figure (should only press after X key press).")
+    print("Press Esc key to exit program (should only press before X key press).")
+
     
     plt.show(block=True)
     
