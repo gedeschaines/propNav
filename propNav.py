@@ -132,7 +132,7 @@ PN_ATPN = 4  # Augmented True Proportional Navigation per ref [6]
 PN_APPN = 5  # Augmented Pure Proportional Navigation per ref [6]
 PN_LAWS = {PN_TRUE:'True', PN_PURE:'Pure', PN_ZEM:'ZEM', 
            PN_ATPN:'ATPN', PN_APPN:'APPN'}
-PNAV    = PN_PURE
+PNAV = PN_PURE
 
 global Nm, Nt
 
@@ -155,7 +155,7 @@ Ammax = Gmmax[MSL]*g     # maximum missile acceleration (meters/s/s)
 
 if MSL == SAM:
     MinMissDist = 3.0
-else :
+else:
     MinMissDist = 6.0
     
 # Define target and missile initial states.
@@ -202,6 +202,8 @@ if MSL == SAM:
     #mel +=  2.0
     maz = 10.0
     mel = 12.0
+    #maz = None
+    #mel = None
 else:
     maz = 0.0
     mel = 0.0
@@ -453,7 +455,7 @@ def Wlos(Vt, Vm, Rlos, Ulos):
 def Amslc(Rlos, Vt, At, Vm, N):
     """
     This routine is the application of selected proportional
-    navigation method - True, Pure, FEM, ATPN or APPN.
+    navigation method - True, Pure, ZEM, ATPN or APPN.
     
     Globals
     -------
