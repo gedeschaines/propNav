@@ -107,7 +107,7 @@ Both **propNav** and **pyThreeD** have been successfully run with platform OS Py
    </tr>
    <tr>
     <td align="left">Windows 10.0.19045 Pro</td>
-    <td align="left">Anaconda 3 2023.09-0< 2023.09-0/td>
+    <td align="left">Anaconda 3 2023.09-0</td>
     <td align="center">3.11.5</th>
     <td  align="center">1.24.3</td>
     <td align="center">3.7.2</td>
