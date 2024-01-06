@@ -115,6 +115,32 @@ SHOW_ANIM  = True   # Controls showing interactive 3D engagement animation
 SAVE_ANIM  = False  # Controls saving/showing 3D engagement animation
 PRINT_TXYZ = False  # Controls printing TXYZ.OUT file
 
+PLOT_FIGS = { 1:True,  # Closing distance at tStop
+              2:True,  # XY plan view of intercept geometry at tStop
+              3:True,  # XZ profile view of intercept geometry at tStop
+              4:True,  # XY plan view of missile/target engagement
+              5:True,  # XZ profile view of missile/target engagement
+              6:True,  # Msl/Tgt velocity magnitude vs time of flight
+              7:True,  # Msl/Tgt acceleration vs time of flight
+              8:True,  # Line-of-Sight rate vs time of flight
+              9:True,  # Closing velocity vs time of flight
+             10:True,  # Zero Effort Miss distance vs time of flight
+             11:True,  # Target offset sines wrt missile +x axis
+             12:True,  # 3D missile/target engagement trajectories plot
+            }
+
+"""
+Plot only selected figures.
+
+for ifig in PLOT_FIGS.keys():
+    PLOT_FIGS[ifig] = False
+
+PLOT_FIGS[5] = True
+PLOT_FIGS[7] = True
+PLOT_FIGS[8] = True
+PLOT_FIGS[9] = True
+"""
+
 # Unit vectors for inertial Cartesion frame X,Y,Z axes.
 
 global Uxi, Uyi, Uzi
@@ -166,7 +192,7 @@ if MSL == SAM:
     Pm0   = np.array([    0.0,    0.0,    2.0])
     magVm = 450.0
 else:
-    if ((int(Nt) == 3) and (int(Nm) == 3)) and \
+    if ((int(Nt) == 3) and (int(Nm) >= 3)) and \
        ((PNAV == PN_TRUE) or (PNAV == PN_ATPN) or (PNAV == PN_APPN)):
         # for Section 2, Module 3 of ref [5].
         Pt0   = np.array([ 9144.0, 6096.0, 3048.0])
@@ -231,14 +257,14 @@ UWt = UWt/la.norm(UWt)
 
 # Set integration time step size and simulation stop time (sec).
 
-T_STEP = 0.001
+T_STEP = 0.005
 if MSL == SAM:
     T_STOP = 8.0
 else:
-    if ((int(Nt) == 3) and (int(Nm) == 3)) and \
+    if ((int(Nt) == 3) and (int(Nm) >= 3)) and \
         ((PNAV == PN_TRUE) or (PNAV == PN_ATPN) or (PNAV == PN_APPN)):
         # For Section 2, Module 3 of ref [5].
-        T_STOP = 14.5
+        T_STOP = 15.5
     else:
         # For Section 3, Modules 3 & 4, Section 4, Module 4 of ref [4].
         T_STOP = 12.5
@@ -508,8 +534,11 @@ def Amslc(Rlos, Vt, At, Vm, N):
             PNG = PN_1b
         if PNAV == PN_ATPN:
             # 3.1.2 Version 2 (PN-2) True PN equation (3.5)
-            Vc    = la.norm(Vclose(Vt, Vm, Ulos))
-            PN_2i = N*Vc*np.cross(Wlos(Vt, Vm, Rlos, Ulos), Ulos)
+            UVm = Uvec(Vm)
+            Vc  = la.norm(Vclose(Vt, Vm, Ulos))
+            Ac  = N*Vc*np.cross(Wlos(Vt, Vm, Rlos, Ulos), Ulos)
+            # Apply guidance command preservation per eq (45) on pg 38 of ref [3].
+            PN_2i = ((Ac[0] - np.dot(Ac, UVm))/np.dot(Ulos, UVm))*Ulos + Ac
             PN_2b = np.matmul(Mbi, PN_2i)  # eq. (3.6)
             PN_2b[0] = 0.0                 # eq. (3.7)
             PNG = PN_2b  # Section 2, Module 3 of ref [5].
@@ -530,7 +559,7 @@ def Amslc(Rlos, Vt, At, Vm, N):
         Ac  = N*Vc*np.cross(Wlos(Vt, Vm, Rlos, Ulos), Ulos)
         # Apply guidance command preservation per eq (45) on pg 38 of ref [3].
         Agcp = ((Ac[0] - np.dot(Ac, UVm))/np.dot(Ulos, UVm))*Ulos + Ac
-        Acmd = Agcp - np.dot(Agcp, UVm)*UVm  # no thrust control 
+        Acmd = Agcp - np.dot(Agcp, UVm)*UVm  # no thrust control
         """
         try:
             np.testing.assert_almost_equal(np.dot(Agcp, UVm), Ac[0], 6)
@@ -651,7 +680,7 @@ def Atgt(UWt, Pt, Vt, n, TgtTheta):
             print('Tgt:\n', np.matmul(Mbi, Mbi.transpose()))
             print(la.norm(np.matmul(Mbi, Mbi.transpose())))
             sys.exit()
-        """    
+        """
         # Rotate inertial Vt into target body frame.
         Vtb = np.matmul(Mbi, Vt)
         # Calculate inertial acceleration in target body frame.
@@ -813,14 +842,17 @@ def Dclose(S):
     dtm = la.norm(Prel(Pt, Pm))
     return dtm
 
+DT_FINAL = T_STEP/20.0
 def delT(S):
+    # This routine is called to reduce integration step size
+    # at engagement endgame to refine time of intercept. 
     if Dclose(S) < 100.0:
         if Dclose(S) < 10.0:
-            h = 0.00005
+            h = DT_FINAL  # final reduction
         else:
-            h = 0.0001
+            h = T_STEP/10.0
     else:
-        h = 0.0005  # Note: this value should be tStep/2.
+        h = T_STEP/2.0  # first reduction
     return h
 
    
@@ -1463,7 +1495,7 @@ if __name__ == "__main__":
     num_trys = 0  # account for non-covergent intercepts
     max_trys = 4
     
-    while (tStep > 0.00005) and (num_trys < max_trys):
+    while (tStep > DT_FINAL) and (num_trys < max_trys):
         
         print("\nt=%9.5f  tStep=%9.5f  num_trys=%d  Dclose=%f" % 
               (S[0], tStep, num_trys, Dclose(S)))
@@ -1644,318 +1676,330 @@ if __name__ == "__main__":
         
         figures = []
         
-        ## Figure 1 - Closing distance at tStop.
-        figures.append(plt.figure(1, figsize=(6,3), dpi=80))
-        text = "Closing distance ({0}, N={1}, At={2})"\
-            .format(PN_LAWS[PNAV], int(Nm), int(Nt))
-        plt.title(text)
-        plt.xlabel('Time (sec)')
-        plt.ylabel('Distance (meters)')
-        plt.xlim([Time[istop-3], Time[istop]])
-        plt.ylim([-1.0, Dcls[istop-3]])
-        plt.grid()
-        plt.plot(Time[istop-3:iend], Dcls[istop-3:iend], 'o:k')
-        plt.plot(np.array([Time[istop-3], Time[istop]]), 
-                 np.array([MinMissDist, MinMissDist]), '-c')
-        if INTERCEPT:
-            plt.plot(Time[istop], Dcls[istop], 'X:m')
-            plt.legend(['Distance','MinMissDist','Intercept'])
-        else:
-            plt.plot(Time[istop], Dcls[istop], 'o:c')
-            plt.legend(['Distance','MinMissDist','Missed'])
+        if PLOT_FIGS[1]:
+            ## Figure 1 - Closing distance at tStop.
+            figures.append(plt.figure(1, figsize=(6,3), dpi=80))
+            text = "Closing distance ({0}, N={1}, At={2})"\
+                 .format(PN_LAWS[PNAV], int(Nm), int(Nt))
+            plt.title(text)
+            plt.xlabel('Time (sec)')
+            plt.ylabel('Distance (meters)')
+            plt.xlim([Time[istop-3], Time[istop]])
+            plt.ylim([-1.0, Dcls[istop-3]])
+            plt.grid()
+            plt.plot(Time[istop-3:iend], Dcls[istop-3:iend], 'o:k')
+            plt.plot(np.array([Time[istop-3], Time[istop]]), 
+                     np.array([MinMissDist, MinMissDist]), '-c')
+            if INTERCEPT:
+                plt.plot(Time[istop], Dcls[istop], 'X:m')
+                plt.legend(['Distance','MinMissDist','Intercept'])
+            else:
+                plt.plot(Time[istop], Dcls[istop], 'o:c')
+                plt.legend(['Distance','MinMissDist','Missed'])
         
-        ## Figure 2 - XY plan view of intercept geometry at tStop.
-        figures.append(plt.figure(2, figsize=(6,6), dpi=80))
-        text = "XY plan view of intercept ({0}, N={1}, At={2})"\
-            .format(PN_LAWS[PNAV], int(Nm), int(Nt))
-        plt.title(text)
-        plt.xlabel('X (meters)')
-        plt.ylabel('y (meters)')
-        if MSL == SAM:
-            plt.xlim([(Pmx[istop]+Ptx[istop])/2-max(10.0, Dcls[istop]),
-                      (Pmx[istop]+Ptx[istop])/2+max(10.0, Dcls[istop])/2.0])
-            plt.ylim([(Pmy[istop]+Pty[istop])/2-max(10.0, Dcls[istop]),
-                      (Pmy[istop]+Pty[istop])/2+max(10.0, Dcls[istop])/2.0])
-        else:
-            plt.xlim([(Pmx[istop]+Ptx[istop])/2-max(20.0, Dcls[istop]),
-                      (Pmx[istop]+Ptx[istop])/2+max(20.0, Dcls[istop])/2.0])
-            plt.ylim([(Pmy[istop]+Pty[istop])/2-max(20.0, Dcls[istop]),
-                      (Pmy[istop]+Pty[istop])/2+max(20.0, Dcls[istop])/2.0])
-        plt.grid()
-        plt.plot(Ptx[istop-3:iend], Pty[istop-3:iend], 's:r',
-                 Pmx[istop-3:iend], Pmy[istop-3:iend], 'x:b',
-                 np.array([Pmx[istop-3],Ptx[istop-3]]),
-                 np.array([Pmy[istop-3],Pty[istop-3]]), '.:k',
-                 np.array([Pmx[istop-2],Ptx[istop-2]]),
-                 np.array([Pmy[istop-2],Pty[istop-2]]), '.:k',
-                 np.array([Pmx[istop-1],Ptx[istop-1]]),
-                 np.array([Pmy[istop-1],Pty[istop-1]]), '.:k')
-        if INTERCEPT:
-            plt.plot(np.array([Pmx[istop],Ptx[istop]]),
-                     np.array([Pmy[istop],Pty[istop]]), '.:m')
-            plt.legend(('Target','Missile','LOS',' ',' ','Intercept'), loc='upper left')
-        else:
-            plt.plot(np.array([Pmx[istop],Ptx[istop]]),
-                     np.array([Pmy[istop],Pty[istop]]), '.:c')
-            plt.legend(('Target','Missile','LOS',' ', ' ','Missed'), loc='upper left')
+        if PLOT_FIGS[2]:
+            ## Figure 2 - XY plan view of intercept geometry at tStop.
+            figures.append(plt.figure(2, figsize=(6,6), dpi=80))
+            text = "XY plan view of intercept ({0}, N={1}, At={2})"\
+                .format(PN_LAWS[PNAV], int(Nm), int(Nt))
+            plt.title(text)
+            plt.xlabel('X (meters)')
+            plt.ylabel('y (meters)')
+            if MSL == SAM:
+                plt.xlim([(Pmx[istop]+Ptx[istop])/2-max(10.0, Dcls[istop]),
+                          (Pmx[istop]+Ptx[istop])/2+max(10.0, Dcls[istop])/2.0])
+                plt.ylim([(Pmy[istop]+Pty[istop])/2-max(10.0, Dcls[istop]),
+                          (Pmy[istop]+Pty[istop])/2+max(10.0, Dcls[istop])/2.0])
+            else:
+                plt.xlim([(Pmx[istop]+Ptx[istop])/2-max(20.0, Dcls[istop]),
+                          (Pmx[istop]+Ptx[istop])/2+max(20.0, Dcls[istop])/2.0])
+                plt.ylim([(Pmy[istop]+Pty[istop])/2-max(20.0, Dcls[istop]),
+                          (Pmy[istop]+Pty[istop])/2+max(20.0, Dcls[istop])/2.0])
+            plt.grid()
+            plt.plot(Ptx[istop-3:iend], Pty[istop-3:iend], 's:r',
+                     Pmx[istop-3:iend], Pmy[istop-3:iend], 'x:b',
+                     np.array([Pmx[istop-3],Ptx[istop-3]]),
+                     np.array([Pmy[istop-3],Pty[istop-3]]), '.:k',
+                     np.array([Pmx[istop-2],Ptx[istop-2]]),
+                     np.array([Pmy[istop-2],Pty[istop-2]]), '.:k',
+                     np.array([Pmx[istop-1],Ptx[istop-1]]),
+                     np.array([Pmy[istop-1],Pty[istop-1]]), '.:k')
+            if INTERCEPT:
+                plt.plot(np.array([Pmx[istop],Ptx[istop]]),
+                         np.array([Pmy[istop],Pty[istop]]), '.:m')
+                plt.legend(('Target','Missile','LOS',' ',' ','Intercept'), loc='upper left')
+            else:
+                plt.plot(np.array([Pmx[istop],Ptx[istop]]),
+                         np.array([Pmy[istop],Pty[istop]]), '.:c')
+                plt.legend(('Target','Missile','LOS',' ', ' ','Missed'), loc='upper left')
         
-        ## Figure 3 - XZ profile view of intercept geometry at tStop.
-        figures.append(plt.figure(3, figsize=(6,3), dpi=80))
-        text = "XZ profile view of intercept ({0}, N={1}, At={2})"\
-            .format(PN_LAWS[PNAV], int(Nm), int(Nt))
-        plt.title(text)
-        plt.xlabel('X (meters)')
-        plt.ylabel('Z (meters)')
-        if MSL == SAM:
-            plt.xlim([(Pmx[istop]+Ptx[istop])/2-max(10.0, Dcls[istop]),
-                      (Pmx[istop]+Ptx[istop])/2+max(10.0, Dcls[istop])/2.0])
-            plt.ylim([(Pmz[istop]+Ptz[istop])/2-max(10.0, Dcls[istop])/2.0,
-                      (Pmz[istop]+Ptz[istop])/2+max(10.0, Dcls[istop])/4.0])
-        else:
-            plt.xlim([(Pmx[istop]+Ptx[istop])/2-max(20.0, Dcls[istop]),
-                      (Pmx[istop]+Ptx[istop])/2+max(20.0, Dcls[istop])/2.0])
-            plt.ylim([(Pmz[istop]+Ptz[istop])/2-max(20.0, Dcls[istop])/2.0,
-                      (Pmz[istop]+Ptz[istop])/2+max(20.0, Dcls[istop])/4.0])
-        plt.grid()
-        plt.plot(Ptx[istop-3:iend], Ptz[istop-3:iend], 's:r',
-                 Pmx[istop-3:iend], Pmz[istop-3:iend], 'x:b',
-                 np.array([Pmx[istop-3],Ptx[istop-3]]),
-                 np.array([Pmz[istop-3],Ptz[istop-3]]), '.:k',
-                 np.array([Pmx[istop-2],Ptx[istop-2]]),
-                 np.array([Pmz[istop-2],Ptz[istop-2]]), '.:k',
-                 np.array([Pmx[istop-1],Ptx[istop-1]]),
-                 np.array([Pmz[istop-1],Ptz[istop-1]]), '.:k')
-        if INTERCEPT:
-            plt.plot(np.array([Pmx[istop],Ptx[istop]]),
-                     np.array([Pmz[istop],Ptz[istop]]), '.:m')
-            plt.legend(('Target','Missile','LOS',' ',' ','Intercept'), loc='upper left')
-        else:
-            plt.plot(np.array([Pmx[istop],Ptx[istop]]),
-                     np.array([Pmz[istop],Ptz[istop]]), '.:c')
-            plt.legend(('Target','Missile','LOS',' ',' ','Missed'), loc='upper left')
+        if PLOT_FIGS[3]:
+            ## Figure 3 - XZ profile view of intercept geometry at tStop.
+            figures.append(plt.figure(3, figsize=(6,3), dpi=80))
+            text = "XZ profile view of intercept ({0}, N={1}, At={2})"\
+                .format(PN_LAWS[PNAV], int(Nm), int(Nt))
+            plt.title(text)
+            plt.xlabel('X (meters)')
+            plt.ylabel('Z (meters)')
+            if MSL == SAM:
+                plt.xlim([(Pmx[istop]+Ptx[istop])/2-max(10.0, Dcls[istop]),
+                          (Pmx[istop]+Ptx[istop])/2+max(10.0, Dcls[istop])/2.0])
+                plt.ylim([(Pmz[istop]+Ptz[istop])/2-max(10.0, Dcls[istop])/2.0,
+                          (Pmz[istop]+Ptz[istop])/2+max(10.0, Dcls[istop])/4.0])
+            else:
+                plt.xlim([(Pmx[istop]+Ptx[istop])/2-max(20.0, Dcls[istop]),
+                          (Pmx[istop]+Ptx[istop])/2+max(20.0, Dcls[istop])/2.0])
+                plt.ylim([(Pmz[istop]+Ptz[istop])/2-max(20.0, Dcls[istop])/2.0,
+                          (Pmz[istop]+Ptz[istop])/2+max(20.0, Dcls[istop])/4.0])
+            plt.grid()
+            plt.plot(Ptx[istop-3:iend], Ptz[istop-3:iend], 's:r',
+                     Pmx[istop-3:iend], Pmz[istop-3:iend], 'x:b',
+                     np.array([Pmx[istop-3],Ptx[istop-3]]),
+                     np.array([Pmz[istop-3],Ptz[istop-3]]), '.:k',
+                     np.array([Pmx[istop-2],Ptx[istop-2]]),
+                     np.array([Pmz[istop-2],Ptz[istop-2]]), '.:k',
+                     np.array([Pmx[istop-1],Ptx[istop-1]]),
+                     np.array([Pmz[istop-1],Ptz[istop-1]]), '.:k')
+            if INTERCEPT:
+                plt.plot(np.array([Pmx[istop],Ptx[istop]]),
+                         np.array([Pmz[istop],Ptz[istop]]), '.:m')
+                plt.legend(('Target','Missile','LOS',' ',' ','Intercept'), loc='upper left')
+            else:
+                plt.plot(np.array([Pmx[istop],Ptx[istop]]),
+                         np.array([Pmz[istop],Ptz[istop]]), '.:c')
+                plt.legend(('Target','Missile','LOS',' ',' ','Missed'), loc='upper left')
         
-        ## Figure 4 - XY plan view of missile/target engagement.
-        figures.append(plt.figure(4, figsize=(6,6), dpi=80))
-        text = "XY plan view of missile/target engagement ({0}, N={1}, At={2})"\
-            .format(PN_LAWS[PNAV], int(Nm), int(Nt))
-        plt.title(text)
-        plt.xlabel('X (meters)')
-        plt.ylabel('Y (meters)')
-        plt.xlim([Pm0[0], Pt0[0]+500.0])
-        if MSL == SAM:
-            plt.ylim([Pm0[1], Pm0[1]+(Pt0[0]+500-Pm0[0])])
-        else:
-            plt.ylim([Pm0[1]-Pm0[1]/2.0, Pm0[1]+Pm0[1]/2])
-        plt.grid()
-        plt.plot(Ptx[0:iend], Pty[0:iend], '-r',
-                 Pmx[0:iend], Pmy[0:iend], '-b')
-        if INTERCEPT:
-            plt.plot(Pmx[istop:iend], Pmy[istop:iend], 'xm')
-            plt.legend(('Target','Missile','Intercept'), loc='upper left')
-        else:
-            plt.plot(np.array([Pmx[istop],Ptx[istop]]),
-                     np.array([Pmy[istop],Pty[istop]]), 'oc')
-            plt.legend(('Target','Missile','Missed'), loc='upper left')
+        if PLOT_FIGS[4]:
+            ## Figure 4 - XY plan view of missile/target engagement.
+            figures.append(plt.figure(4, figsize=(6,6), dpi=80))
+            text = "XY plan view of missile/target engagement ({0}, N={1}, At={2})"\
+                .format(PN_LAWS[PNAV], int(Nm), int(Nt))
+            plt.title(text)
+            plt.xlabel('X (meters)')
+            plt.ylabel('Y (meters)')
+            plt.xlim([Pm0[0], Pt0[0]+500.0])
+            if MSL == SAM:
+                plt.ylim([Pm0[1], Pm0[1]+(Pt0[0]+500-Pm0[0])])
+            else:
+                plt.ylim([Pm0[1]-Pm0[1]/2.0, Pm0[1]+Pm0[1]/2])
+            plt.grid()
+            plt.plot(Ptx[0:iend], Pty[0:iend], '-r',
+                     Pmx[0:iend], Pmy[0:iend], '-b')
+            if INTERCEPT:
+                plt.plot(Pmx[istop:iend], Pmy[istop:iend], 'xm')
+                plt.legend(('Target','Missile','Intercept'), loc='upper left')
+            else:
+                plt.plot(np.array([Pmx[istop],Ptx[istop]]),
+                         np.array([Pmy[istop],Pty[istop]]), 'oc')
+                plt.legend(('Target','Missile','Missed'), loc='upper left')
         
-        ## Figure 5 - XZ profile view of missile/target engagement.
-        figures.append(plt.figure(5, figsize=(6,3), dpi=80))
-        text = "XZ profile view of missile/target engagement ({0}, N={1}, At={2})"\
-            .format(PN_LAWS[PNAV], int(Nm), int(Nt))
-        plt.title(text)
-        plt.xlabel('X (meters)')
-        plt.ylabel('Z (meters)')
-        plt.xlim([Pm0[0], Pt0[0]+500.0])
-        if MSL == SAM:
-            plt.ylim([0.0, (Pt0[0]+500-Pm0[0])/2])
-        else:
-            plt.ylim([floor(min(Pmz[0:istop])/1000.0)*1000.0 - 1000.0,
-                      floor(min(Pmz[0:istop])/1000.0)*1000.0 + 
-                      (Pt0[0]-Pm0[0])/2 - 1000.0])
-        plt.grid()
-        plt.plot(Ptx[0:iend], Ptz[0:iend], '-r',
-                 Pmx[0:iend], Pmz[0:iend], '-b')
-        if INTERCEPT:
-            plt.plot(Pmx[istop:iend], Pmz[istop:iend], 'xm')
-            plt.legend(('Target','Missile','Intercept'), loc='upper left')
-        else:
-            plt.plot(np.array([Pmx[istop],Ptx[istop]]),
-                     np.array([Pmz[istop],Ptz[istop]]), 'oc')
-            plt.legend(('Target','Missile','Missed'), loc='upper left')
+        if PLOT_FIGS[5]:
+            ## Figure 5 - XZ profile view of missile/target engagement.
+            figures.append(plt.figure(5, figsize=(6,3), dpi=80))
+            text = "XZ profile view of missile/target engagement ({0}, N={1}, At={2})"\
+                .format(PN_LAWS[PNAV], int(Nm), int(Nt))
+            plt.title(text)
+            plt.xlabel('X (meters)')
+            plt.ylabel('Z (meters)')
+            plt.xlim([Pm0[0], Pt0[0]+500.0])
+            if MSL == SAM:
+                plt.ylim([0.0, (Pt0[0]+500-Pm0[0])/2])
+            else:
+                plt.ylim([floor(min(Pmz[0:istop])/1000.0)*1000.0 - 1000.0,
+                          floor(min(Pmz[0:istop])/1000.0)*1000.0 + 
+                          (Pt0[0]-Pm0[0])/2 - 1000.0])
+            plt.grid()
+            plt.plot(Ptx[0:iend], Ptz[0:iend], '-r',
+                     Pmx[0:iend], Pmz[0:iend], '-b')
+            if INTERCEPT:
+                plt.plot(Pmx[istop:iend], Pmz[istop:iend], 'xm')
+                plt.legend(('Target','Missile','Intercept'), loc='upper left')
+            else:
+                plt.plot(np.array([Pmx[istop],Ptx[istop]]),
+                         np.array([Pmz[istop],Ptz[istop]]), 'oc')
+                plt.legend(('Target','Missile','Missed'), loc='upper left')
         
-        ## Figure 6 - Msl/Tgt velocity magnitude vs time of flight
-        ##            up to point just before flight termination.
-        ##            Note; This is a constant velocity missile.
-        figures.append(plt.figure(6, figsize=(6,3), dpi=80))
-        text = "Msl/Tgt velocity magnitude profiles ({0}, N={1}, At={2})"\
-            .format(PN_LAWS[PNAV], int(Nm), int(Nt))
-        plt.title(text)
-        plt.xlabel('Time (sec)')
-        plt.ylabel('Velocity (meters/sec)')
-        plt.xlim([0.0, T_STOP])
-        plt.ylim([Velt[0]-10, ceil(max(Velm[0:istop]))+10])
-        plt.grid()
-        plt.plot(Time[0:istop], Velm[0:istop], '-b')
-        plt.plot(Time[0:istop], Velt[0:istop], '-r')
-        plt.legend(('Missile','Target'), loc='lower right')
+        if PLOT_FIGS[6]:
+            ## Figure 6 - Msl/Tgt velocity magnitude vs time of flight
+            ##            up to point just before flight termination.
+            ##            Note; This is a constant velocity missile.
+            figures.append(plt.figure(6, figsize=(6,3), dpi=80))
+            text = "Msl/Tgt velocity magnitude profiles ({0}, N={1}, At={2})"\
+                .format(PN_LAWS[PNAV], int(Nm), int(Nt))
+            plt.title(text)
+            plt.xlabel('Time (sec)')
+            plt.ylabel('Velocity (meters/sec)')
+            plt.xlim([0.0, T_STOP])
+            plt.ylim([Velt[0]-10, ceil(max(Velm[0:istop]))+10])
+            plt.grid()
+            plt.plot(Time[0:istop], Velm[0:istop], '-b')
+            plt.plot(Time[0:istop], Velt[0:istop], '-r')
+            plt.legend(('Missile','Target'), loc='lower right')
+       
+        if PLOT_FIGS[7]:
+            ## Figure 7 - Msl/Tgt acceleration vs time of flight up
+            ##            to point just before flight termination.
+            figures.append(plt.figure(7, figsize=(6,3), dpi=80))
+            text = "Msl/Tgt acceleration profiles ({0}, N={1}, At={2})"\
+                .format(PN_LAWS[PNAV], int(Nm), int(Nt))
+            plt.title(text)
+            plt.xlabel('Time (sec)')
+            plt.ylabel('Acceleration (g)')
+            plt.xlim([0.0, T_STOP])
+            plt.ylim([floor((min([min(Acmg[0:istop]),min(Atg[0:istop])])-Gmmax[MSL]/2)*10.0)/10.0,
+                      ceil((max([max(Acmg[0:istop]),max(Atg[0:istop])])+Gmmax[MSL]/2)*10.0)/10.0])
+            plt.grid()
+            plt.plot(Time[0:istop], Acmg[0:istop], ',-b')
+            plt.plot(Time[0:istop], Atg[0:istop], ',-r')
+            plt.legend(('Missile','Target'), loc='lower right')
         
-        ## Figure 7 - Msl/Tgt acceleration vs time of flight up
-        ##            to point just before flight termination.
-        figures.append(plt.figure(7, figsize=(6,3), dpi=80))
-        text = "Msl/Tgt acceleration profiles ({0}, N={1}, At={2})"\
-            .format(PN_LAWS[PNAV], int(Nm), int(Nt))
-        plt.title(text)
-        plt.xlabel('Time (sec)')
-        plt.ylabel('Acceleration (g)')
-        plt.xlim([0.0, T_STOP])
-        plt.ylim([floor((min([min(Acmg[0:istop]),min(Atg[0:istop])])-Gmmax[MSL]/2)*10.0)/10.0,
-                   ceil((max([max(Acmg[0:istop]),max(Atg[0:istop])])+Gmmax[MSL]/2)*10.0)/10.0])
-        plt.grid()
-        plt.plot(Time[0:istop], Acmg[0:istop], ',-b')
-        plt.plot(Time[0:istop], Atg[0:istop], ',-r')
-        plt.legend(('Missile','Target'), loc='lower right')
+        if PLOT_FIGS[8]:
+            ## Figure 8 - Line-of-Sight rate vs time of flight up
+            ##            to point just before flight termination.
+            figures.append(plt.figure(8, figsize=(6,3), dpi=80))
+            text = "LOS rate profile ({0}, N={1}, At={2})"\
+                .format(PN_LAWS[PNAV], int(Nm), int(Nt))
+            plt.title(text)
+            plt.xlabel('Time (sec)')
+            plt.ylabel('LOS rate (deg/sec)')
+            plt.xlim([0.0, T_STOP])
+            plt.ylim([max([floor(min(LOSd[0:istop]))-0.2,-6]), 
+                      min([ ceil(max(LOSd[0:istop]))+0.2, 6])])
+            plt.grid()
+            plt.plot(Time[0:istop], LOSd[0:istop], '-k')
         
-        ## Figure 8 - Line-of-Sight rate vs time of flight up
-        ##            to point just before flight termination.
-        figures.append(plt.figure(8, figsize=(6,3), dpi=80))
-        text = "LOS rate profile ({0}, N={1}, At={2})".\
-            format(PN_LAWS[PNAV], int(Nm), int(Nt))
-        plt.title(text)
-        plt.xlabel('Time (sec)')
-        plt.ylabel('LOS rate (deg/sec)')
-        plt.xlim([0.0, T_STOP])
-        plt.ylim([max([floor(min(LOSd[0:istop]))-0.2,-6]), 
-                  min([ ceil(max(LOSd[0:istop]))+0.2, 6])])
-        plt.grid()
-        plt.plot(Time[0:istop], LOSd[0:istop], '-k')
+        if PLOT_FIGS[9]:
+            ## Figure 9 - Closing velocity vs time of flight up
+            ##            to point just before flight termination.
+            figures.append(plt.figure(9, figsize=(6,3), dpi=80))
+            text = "Closing velocity profile ({0}, N={1}, At={2})"\
+                .format(PN_LAWS[PNAV], int(Nm), int(Nt))
+            plt.title(text)
+            plt.xlabel('Time (sec)')
+            plt.ylabel('Velocity (meters/sec)')
+            plt.xlim([0.0, T_STOP])
+            plt.ylim([floor(min(VELc[0:istop]))-10.0,
+                      ceil(max(VELc[0:istop]))+10.0])
+            plt.grid()
+            plt.plot(Time[0:istop], VELc[0:istop], '-k')
         
-        ## Figure 9 - Closing velocity vs time of flight up
-        ##            to point just before flight termination.
-        figures.append(plt.figure(9, figsize=(6,3), dpi=80))
-        text = "Closing velocity profile ({0}, N={1}, At={2})"\
-            .format(PN_LAWS[PNAV], int(Nm), int(Nt))
-        plt.title(text)
-        plt.xlabel('Time (sec)')
-        plt.ylabel('Velocity (meters/sec)')
-        plt.xlim([0.0, T_STOP])
-        plt.ylim([floor(min(VELc[0:istop]))-10.0,
-                   ceil(max(VELc[0:istop]))+10.0])
-        plt.grid()
-        plt.plot(Time[0:istop], VELc[0:istop], '-k')
+        if PLOT_FIGS[10]:
+            ## Figure 10 - Zero Effort Miss distance vs time of flight
+            ##             up to point just before flight termination.
+            figures.append(plt.figure(10, figsize=(6,3), dpi=80))
+            text = "Zero Effort Miss distance profile ({0}, N={1}, At={2})"\
+                .format(PN_LAWS[PNAV], int(Nm), int(Nt))
+            plt.title(text)
+            plt.xlabel('Time (sec)')
+            plt.ylabel('Distance (meters)')
+            plt.xlim([0.0, T_STOP])
+            plt.ylim([0.0, ceil(max(ZEMd[0:istop]))+10.0])
+            plt.grid()
+            plt.plot(Time[0:istop], ZEMd[0:istop], '-k')
         
-        ## Figure 10 - Zero Effort Miss distance vs time of flight
-        ##             up to point just before flight termination.
-        figures.append(plt.figure(10, figsize=(6,3), dpi=80))
-        text = "Zero Effort Miss distance profile ({0}, N={1}, At={2})"\
-            .format(PN_LAWS[PNAV], int(Nm), int(Nt))
-        plt.title(text)
-        plt.xlabel('Time (sec)')
-        plt.ylabel('Distance (meters)')
-        plt.xlim([0.0, T_STOP])
-        plt.ylim([0.0, ceil(max(ZEMd[0:istop]))+10.0])
-        plt.grid()
-        plt.plot(Time[0:istop], ZEMd[0:istop], '-k')
+        if PLOT_FIGS[11]:
+            ## Figure 11 - Target offset sines wrt missile +x axis.
+            figures.append(plt.figure(11, figsize=(6,6), dpi=80))
+            text = "Target offset sines wrt missile +x axis ({0}, N={1}, At={2})"\
+                .format(PN_LAWS[PNAV], int(Nm), int(Nt))
+            plt.title(text)
+            plt.xlabel('Horizontal Offset (Sine)')
+            plt.ylabel('Vertical Offset (Sine)')
+            plt.xlim([-0.5,  0.5])  # +/- 30 degrees
+            plt.ylim([ 0.5, -0.5])  # +/- 30 degrees
+            plt.grid()
+            plt.plot(Thoff[0:1], Tvoff[0:1], 'o:r')
+            plt.plot(Thoff[1:iend], Tvoff[1:iend], ',:r')
+            if INTERCEPT:
+                plt.plot(Thoff[istop:iend], Tvoff[istop:iend], 'xm')
+                plt.legend(('Target at To','Target Path','Intercept'), loc='upper left')
+            else:
+                plt.plot(Thoff[istop:iend], Tvoff[istop:iend], 'oc')
+                plt.legend(('Target at To','Target Path','Missed'), loc='upper left')
         
-        ## Figure 11 - Target offset sines wrt missile +x axis.
-        figures.append(plt.figure(11, figsize=(6,6), dpi=80))
-        text = "Target offset sines wrt missile +x axis ({0}, N={1}, At={2})"\
-            .format(PN_LAWS[PNAV], int(Nm), int(Nt))
-        plt.title(text)
-        plt.xlabel('Horizontal Offset (Sine)')
-        plt.ylabel('Vertical Offset (Sine)')
-        plt.xlim([-0.5,  0.5])  # +/- 30 degrees
-        plt.ylim([ 0.5, -0.5])  # +/- 30 degrees
-        plt.grid()
-        plt.plot(Thoff[0:1], Tvoff[0:1], 'o:r')
-        plt.plot(Thoff[1:iend], Tvoff[1:iend], ',:r')
-        if INTERCEPT:
-            plt.plot(Thoff[istop:iend], Tvoff[istop:iend], 'xm')
-            plt.legend(('Target at To','Target Path','Intercept'), loc='upper left')
-        else:
-            plt.plot(Thoff[istop:iend], Tvoff[istop:iend], 'oc')
-            plt.legend(('Target at To','Target Path','Missed'), loc='upper left')
-        
-        ## Figure 12 - 3D missile/target engagement trajectories plot.
-        figures.append(plt.figure(12, figsize=(8,8), dpi=80))
-        ax = figures[-1].add_subplot(projection='3d')
-        text = "3D Plot of missile/target engagement ({0}, N={1}, At={2})"\
-            .format(PN_LAWS[PNAV], int(Nm), int(Nt))
-        ax.set_title(text)
-        ax.set_xlabel('X (meters)')
-        ax.set_ylabel('Y (meters)')
-        ax.set_zlabel('Z (meters)')
-        if MSL == SAM:
-            ax.set_xlim3d([Pm0[0],  Pt0[0]+500.0])
-            ax.set_ylim3d([Pm0[1],  Pm0[1]+(Pt0[0]+500-Pm0[0])])
-            ax.set_zlim3d([0.0,    (Pt0[0]+500-Pm0[0])/2])
-        else:
-            ax.set_xlim3d([floor(Pmx[0]/500.0)*500.0,
-                           ceil(Ptx[0]/500.0)*500.0])
-            ax.set_ylim3d([floor(Pmy[0]/500.0)*500.0 - 
-                           (ceil(Ptx[0]/500.0)*500.0 - 
-                            floor(Pmx[0]/500.0)*500.0)/2,
-                           floor(Pmy[0]/500.0)*500.0 +
-                           (ceil(Ptx[0]/500.0)*500.0 - 
-                            floor(Pmx[0]/500.0)*500.0)/2])
-            ax.set_zlim3d([floor(Pmz[0]/500.0)*500.0 - 
-                           (ceil(Ptx[0]/500.0)*500.0 - 
-                            floor(Pmx[0]/500.0)*500.0)/2,
-                           floor(Pmz[0]/500.0)*500.0 +
-                            (ceil(Ptx[0]/500.0)*500.0 - 
-                             floor(Pmx[0]/500.0)*500.0)/2])
-            ax.set_aspect('equal')
-        ax.grid()
-        # target in 3D space
-        line1 = Line3D(Ptx[0:iend], Pty[0:iend], Ptz[0:iend],
-                       color='r', ls='-', lw=2.0,       
-                       marker=' ', mew=2.0, mec='r', mfc='r',
-                       label='Target Flight Path')
-        # missile in 3D space
-        line2 = Line3D(Pmx[0:iend], Pmy[0:iend], Pmz[0:iend],
-                       color='b', ls='-', lw=2.0,       
-                       marker=' ', mew=2.0, mec='b', mfc='b',
-                       label='Missile Trajectory')
-        # estimated intercept trajectory in 3D space
-        line3 = Line3D(np.array([Pm0[0],EstPt[0]]),
-                       np.array([Pm0[1],EstPt[1]]),
-                       np.array([Pm0[2],EstPt[2]]),
-                       color='g', ls=':', lw=2.0,       
-                       marker=' ', mew=1.0, mec='g', mfc='g',
-                       label='Estimated Trajectory')
-        # estimated intercept point in 3D space
-        line4 = Line3D(np.array([EstPt[0],EstPt[0]]),
-                       np.array([EstPt[1],EstPt[1]]),
-                       np.array([EstPt[2],EstPt[2]]),
-                       color='g', ls=' ', lw=1.0,       
-                       marker='X', mew=1.0, mec='g', mfc='g',
-                       label='Estimated Intercept')
-        if INTERCEPT:    
-            # intercept point in 3D space
-            line5 = Line3D(Pmx[istop:iend], Pmy[istop:iend], Pmz[istop:iend],
-                           color='m', ls=' ', lw=1.0,       
-                           marker='X', mew=1.0, mec='m', mfc='m',
-                           label='Actual Intercept')
-        else:
-            # missed target and missile points in 3D space
-            line5 = Line3D(np.array([Pmx[istop],Ptx[istop]]),
-                           np.array([Pmy[istop],Pty[istop]]),
-                           np.array([Pmz[istop],Ptz[istop]]),
-                           color='c', ls=' ', lw=1.0,       
-                           marker='o', mew=1.0, mec='c', mfc='c',
-                           label='Missed Intercept')
-        ax.add_line(line1)
-        ax.add_line(line2)
-        ax.add_line(line3)
-        ax.add_line(line4)
-        ax.add_line(line5)
-        
-        (xmin, xmax) = ax.get_xlim()
-        (ymin, ymax) = ax.get_ylim()
-        (zmin, zmax) = ax.get_zlim()
-        time_text = ax.text3D(xmin-500.0, ymax+100.0, zmax+(zmax-zmin)/4.0,
-                              'Time = %.4f' % Time[istop])    
-
-        ax.legend(loc='upper right')
-        ax.view_init(elev=20.0, azim=220.0)
+        if PLOT_FIGS[12]:
+            ## Figure 12 - 3D missile/target engagement trajectories plot.
+            figures.append(plt.figure(12, figsize=(8,8), dpi=80))
+            ax = figures[-1].add_subplot(projection='3d')
+            text = "3D Plot of missile/target engagement ({0}, N={1}, At={2})"\
+               .format(PN_LAWS[PNAV], int(Nm), int(Nt))
+            ax.set_title(text)
+            ax.set_xlabel('X (meters)')
+            ax.set_ylabel('Y (meters)')
+            ax.set_zlabel('Z (meters)')
+            if MSL == SAM:
+                ax.set_xlim3d([Pm0[0],  Pt0[0]+500.0])
+                ax.set_ylim3d([Pm0[1],  Pm0[1]+(Pt0[0]+500-Pm0[0])])
+                ax.set_zlim3d([0.0,    (Pt0[0]+500-Pm0[0])/2])
+            else:
+                ax.set_xlim3d([floor(Pmx[0]/500.0)*500.0,
+                               ceil(Ptx[0]/500.0)*500.0])
+                ax.set_ylim3d([floor(Pmy[0]/500.0)*500.0 - 
+                               (ceil(Ptx[0]/500.0)*500.0 - 
+                               floor(Pmx[0]/500.0)*500.0)/2,
+                               floor(Pmy[0]/500.0)*500.0 +
+                               (ceil(Ptx[0]/500.0)*500.0 - 
+                               floor(Pmx[0]/500.0)*500.0)/2])
+                ax.set_zlim3d([floor(Pmz[0]/500.0)*500.0 - 
+                               (ceil(Ptx[0]/500.0)*500.0 - 
+                                floor(Pmx[0]/500.0)*500.0)/2,
+                               floor(Pmz[0]/500.0)*500.0 +
+                               (ceil(Ptx[0]/500.0)*500.0 - 
+                                floor(Pmx[0]/500.0)*500.0)/2])
+                ax.set_aspect('equal')
+            ax.grid()
+            # target in 3D space
+            line1 = Line3D(Ptx[0:iend], Pty[0:iend], Ptz[0:iend],
+                           color='r', ls='-', lw=2.0,       
+                           marker=' ', mew=2.0, mec='r', mfc='r',
+                           label='Target Flight Path')
+            # missile in 3D space
+            line2 = Line3D(Pmx[0:iend], Pmy[0:iend], Pmz[0:iend],
+                           color='b', ls='-', lw=2.0,       
+                           marker=' ', mew=2.0, mec='b', mfc='b',
+                           label='Missile Trajectory')
+            # estimated intercept trajectory in 3D space
+            line3 = Line3D(np.array([Pm0[0],EstPt[0]]),
+                           np.array([Pm0[1],EstPt[1]]),
+                           np.array([Pm0[2],EstPt[2]]),
+                           color='g', ls=':', lw=2.0,       
+                           marker=' ', mew=1.0, mec='g', mfc='g',
+                           label='Estimated Trajectory')
+            # estimated intercept point in 3D space
+            line4 = Line3D(np.array([EstPt[0],EstPt[0]]),
+                           np.array([EstPt[1],EstPt[1]]),
+                           np.array([EstPt[2],EstPt[2]]),
+                           color='g', ls=' ', lw=1.0,       
+                           marker='X', mew=1.0, mec='g', mfc='g',
+                           label='Estimated Intercept')
+            if INTERCEPT:    
+                # intercept point in 3D space
+                line5 = Line3D(Pmx[istop:iend], Pmy[istop:iend], Pmz[istop:iend],
+                               color='m', ls=' ', lw=1.0,       
+                               marker='X', mew=1.0, mec='m', mfc='m',
+                               label='Actual Intercept')
+            else:
+                # missed target and missile points in 3D space
+                line5 = Line3D(np.array([Pmx[istop],Ptx[istop]]),
+                               np.array([Pmy[istop],Pty[istop]]),
+                               np.array([Pmz[istop],Ptz[istop]]),
+                               color='c', ls=' ', lw=1.0,       
+                               marker='o', mew=1.0, mec='c', mfc='c',
+                               label='Missed Intercept')
+            ax.add_line(line1)
+            ax.add_line(line2)
+            ax.add_line(line3)
+            ax.add_line(line4)
+            ax.add_line(line5)
+            
+            (xmin, xmax) = ax.get_xlim()
+            (ymin, ymax) = ax.get_ylim()
+            (zmin, zmax) = ax.get_zlim()
+            time_text = ax.text3D(xmin-500.0, ymax+100.0, zmax+(zmax-zmin)/4.0,
+                                  'Time = %.4f' % Time[istop])    
+            
+            ax.legend(loc='upper right')
+            ax.view_init(elev=20.0, azim=220.0)
         
         def move_fig(fig):
             """
