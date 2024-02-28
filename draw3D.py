@@ -561,8 +561,8 @@ class Draw3D:
                                 (self.pollist[iPol].Cnt1.X,
                                      self.pollist[iPol].Cnt1.Y,
                                          self.pollist[iPol].Cnt1.Z))
+        
         # Move the polygon vertice.
-
         for ipnt in range(0, len(self.pollist[iPol].Recs)):
             aPolRec       = self.pollist[iPol].Recs[ipnt]
             xb            = copy(aPolRec.Pt0.X)
