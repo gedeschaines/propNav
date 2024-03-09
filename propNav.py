@@ -68,6 +68,10 @@
 #      ARDEC, METC, Technical Report ARMET-TR-17051, Picatinny Arsenal, New
 #      Jersey, July 2018. Web Available at discover.dtic.mil:
 #      https://apps.dtic.mil/sti/pdfs/AD1055301.pdf
+#
+#  [8] Ben Dickinson, "Time to Go Estimation - Guidance Fundamentals II - Section 1.1",
+#      last updated Jan. 6, 2024. Web available at www.youtube.com:
+#      https://youtu.be/sbcPfnm30vA?si=nngS_KMwzqJyxMv3
 # 
 # Disclaimer:
 #
@@ -131,14 +135,15 @@ PLOT_FIGS = { 1:True,  # Closing distance at tStop
 
 """
 Plot only selected figures.
-
 for ifig in PLOT_FIGS.keys():
     PLOT_FIGS[ifig] = False
 
 PLOT_FIGS[5] = True
+PLOT_FIGS[6] = True
 PLOT_FIGS[7] = True
 PLOT_FIGS[8] = True
 PLOT_FIGS[9] = True
+PLOT_FIGS[10] = True
 """
 
 # Unit vectors for inertial Cartesion frame X,Y,Z axes.
@@ -147,7 +152,7 @@ global Uxi, Uyi, Uzi
 
 Uxi = np.array([1.0, 0.0, 0.0])
 Uyi = np.array([0.0, 1.0, 0.0])
-Uzi = np.array([0.0, 0.0, 1.0])  
+Uzi = np.array([0.0, 0.0, 1.0])
 
 # Proportional Navigation law (method) selection.
 
@@ -156,8 +161,9 @@ PN_PURE = 2
 PN_ZEM  = 3  # Zero Effort Miss per Section 3, Module 4 of ref [4]
 PN_ATPN = 4  # Augmented True Proportional Navigation per ref [6]
 PN_APPN = 5  # Augmented Pure Proportional Navigation per ref [6]
+PN_AZEM = 6  # Augmented Zero Effort Miss per Section 2, Module 2 of ref [5]
 PN_LAWS = {PN_TRUE:'True', PN_PURE:'Pure', PN_ZEM:'ZEM', 
-           PN_ATPN:'ATPN', PN_APPN:'APPN'}
+           PN_ATPN:'ATPN', PN_APPN:'APPN', PN_AZEM:'AZEM'}
 PNAV = PN_PURE
 
 global Nm, Nt
@@ -192,8 +198,9 @@ if MSL == SAM:
     Pm0   = np.array([    0.0,    0.0,    2.0])
     magVm = 450.0
 else:
-    if ((int(Nt) == 3) and (int(Nm) >= 3)) and \
-       ((PNAV == PN_TRUE) or (PNAV == PN_ATPN) or (PNAV == PN_APPN)):
+    if ((int(Nt) == 3) and (int(Nm) >= 2)) and \
+       ((PNAV == PN_TRUE) or (PNAV == PN_ATPN) or \
+        (PNAV == PN_APPN) or (PNAV == PN_AZEM)):
         # for Section 2, Module 3 of ref [5].
         Pt0   = np.array([ 9144.0, 6096.0, 3048.0])
         Vt0   = np.array([ -304.8,    0.0,    0.0])
@@ -261,13 +268,18 @@ T_STEP = 0.005
 if MSL == SAM:
     T_STOP = 8.0
 else:
-    if ((int(Nt) == 3) and (int(Nm) >= 3)) and \
-        ((PNAV == PN_TRUE) or (PNAV == PN_ATPN) or (PNAV == PN_APPN)):
+    if ((int(Nt) == 3) and (int(Nm) >= 2)) and \
+        ((PNAV == PN_TRUE) or (PNAV == PN_ATPN) or \
+         (PNAV == PN_APPN) or (PNAV == PN_AZEM)):
         # For Section 2, Module 3 of ref [5].
         T_STOP = 15.5
+    elif (int(Nt) == 6) and \
+        ((PNAV == PN_ATPN) or (PNAV == PN_APPN) or (PNAV == PN_AZEM)):
+        # For Section 1.1 of ref [8].
+        T_STOP = 13.5
     else:
         # For Section 3, Modules 3 & 4, Section 4, Module 4 of ref [4].
-        T_STOP = 12.5
+        T_STOP = 13.0
     
 ###
 ### Procedures for Proportional Navigation Guidance model
@@ -418,6 +430,8 @@ def calcVcTgo(Pt, Vt, Pm, Vm):
     # (to intercept) using equations presented on pgs 25-26
     # in sections C.1.1, C.1.2 and C.1.3 of ref [6].
     #
+    # NOTE: Following two expressions assume elt != +/-90
+    #       and ||[Prel[0], Prel[1]]|| > zero.
     azt, elt   = az_el_of_V(Vt)
     aztm, eltm = az_el_of_V(Prel(Pt,Pm))
     
@@ -452,11 +466,37 @@ def calcVcTgo(Pt, Vt, Pm, Vm):
     return VCccmt, Tgo
 
 def ZEMn(Rlos, Vtm, tgo):
+    # Zero Effort Miss normal to line-of-sight (LOS) vector Rlos
+    # towards a non-maneuvering target at time-to-go tgo.
     Ulos = Uvec(Rlos)
     ZEM  = Rlos + Vtm*tgo
     ZEMr = np.dot(ZEM, Ulos)*Ulos
-    ZEMn = ZEM - ZEMr 
+    ZEMn = ZEM - ZEMr
+    """
+    try:
+        azd, eld = az_el_of_V(Rlos)
+        Mli   = Mrot(azd*RPD, eld*RPD, 0.0)
+        ZEMl  = np.matmul(Mli, ZEM)
+        ZEMln = np.array([0.0, ZEMl[1], ZEMl[2]])
+        ZEMi  = np.matmul(Mli.transpose(), ZEMln)
+        np.testing.assert_almost_equal(la.norm(ZEMn - ZEMi), 0.0, 6)
+    except:
+        print("ZEMn:  (%10.3f, %10.3f, %10.3f)" %\
+              (ZEMn[0], ZEMn[1], ZEMn[2]))
+        print("ZEMi:  (%10.3f, %10.3f, %10.3f)" %\
+              (ZEMi[0], ZEMi[1], ZEMi[2]))
+        sys.exit()
+    """
     return ZEMn
+
+def AZEMn(Rlos, Vtm, At, tgo):
+    # Augmented Zero Effort Miss normal to line-of-sight (LOS) vector
+    # Rlos towards an accelerating target at time-to-go tgo.
+    Ulos  = Uvec(Rlos)
+    ZEMA  = Rlos + Vtm*tgo + (At/2.0)*tgo**2
+    ZEMAr = np.dot(ZEMA, Ulos)*Ulos
+    ZEMAn = ZEMA - ZEMAr
+    return ZEMAn
 
 def Wlos(Vt, Vm, Rlos, Ulos):
     # Note: Following expressions for calculating Wlos
@@ -481,7 +521,7 @@ def Wlos(Vt, Vm, Rlos, Ulos):
 def Amslc(Rlos, Vt, At, Vm, N):
     """
     This routine is the application of selected proportional
-    navigation method - True, Pure, ZEM, ATPN or APPN.
+    navigation method - True, Pure, ZEM, ATPN, APPN or AZEM.
     
     Globals
     -------
@@ -523,6 +563,14 @@ def Amslc(Rlos, Vt, At, Vm, N):
              print('Msl:\n', np.matmul(Mbi, Mbi.transpose()))
              print(la.norm(np.matmul(Mbi, Mbi.transpose())))
              sys.exit()
+        try:
+            Atb = np.matmul(Mbi, At)
+            Atx = np.matmul(Mbi.transpose(), Atb)
+            np.testing.assert_almost_equal(la.norm(At - Atx), 0.0, 6)
+        except:
+            print("At orig:  (%8.3f, %8.3f, %8.3f)", (At[0], At[1], At[2]))
+            print("At xfrm:  (%8.3f, %8.3f, %8.3f)", (Atx[0], Atx[1], Atx[2]))
+            sys.exit()
         """
         # See derivation of equation (3.8) in ref [6].
         #
@@ -547,8 +595,13 @@ def Amslc(Rlos, Vt, At, Vm, N):
         Acmdb = PNG + np.matmul(Mbi, (N/2.0)*At)  # eq. (3.8)
         Acmdb[0] = 0.0  # no thrust control
         Acmd = np.matmul(Mbi.transpose(), Acmdb)
+    elif PNAV == PN_AZEM:
+        # NOTE: Time-to-go calculated here assumes non-accelerating target.
+        tgo = timeToGo(Rlos, Vt, Vm)
+        Acmd = N*AZEMn(Rlos, Vtm, At, tgo)/(tgo**2)
+        Acmd = Acmd - np.dot(Acmd, Uvec(Vm))*Uvec(Vm)  # no thrust control    
     elif PNAV == PN_ZEM:
-        tgo  = timeToGo(Rlos, Vt, Vm)
+        tgo = timeToGo(Rlos, Vt, Vm)
         Acmd = N*ZEMn(Rlos, Vtm, tgo)/(tgo**2)
         Acmd = Acmd - np.dot(Acmd, Uvec(Vm))*Uvec(Vm)  # no thrust control
     elif PNAV == PN_PURE:
@@ -571,7 +624,6 @@ def Amslc(Rlos, Vt, At, Vm, N):
             print("||Ac||, ||Agcp||, ||Acmd||:  %8.3f  %8.3f  %8.3f" % \
                   (la.norm(Ac), la.norm(Agcp), la.norm(Acmd)))
         """
-        
     return Acmd
 
 def Amsla(Amcmd, Ammax):
@@ -665,13 +717,13 @@ def Atgt(UWt, Pt, Vt, n, TgtTheta):
             Mbi[2,2] = k[2]
             UWtb = np.matmul(Mbi, UWt)
             # Calculate lift g's loss due to pitch angle.
-            loss = sin(TgtTheta)*np.sign(cos(TgtTheta))
+            loss = cos(TgtTheta)
         else:
             # Use ENU coordinate transformation matrix.
             Mbi = Mrot(taz*RPD, tel*RPD, 0.0)
             # Calculate lift g's loss due to pitch angle.
             theta = pitchAngle(Vt)
-            loss  = sin(theta)
+            loss  = cos(theta)
         """
         try:
             np.testing.assert_almost_equal(la.norm(np.matmul(Mbi, Mbi.transpose())), 
@@ -683,9 +735,11 @@ def Atgt(UWt, Pt, Vt, n, TgtTheta):
         """
         # Rotate inertial Vt into target body frame.
         Vtb = np.matmul(Mbi, Vt)
+        # Calculate aircraft body rotational rate (rad/sec).
+        OmegaDot    = (n*g)/magVt                  # total rate
+        TgtThetaDot = (((n+loss)*g)/magVt)*UWt[1]  # pitch rate
         # Calculate inertial acceleration in target body frame.
-        TgtThetaDot = ((n-loss)*g)/magVt
-        Atb = np.cross(TgtThetaDot*UWtb, Vtb.flatten())
+        Atb = np.cross(OmegaDot*UWtb, Vtb.flatten())
         # Rotate inertial acceleration into inertial space frame.
         At = np.matmul(Mbi.transpose(), Atb)
     else:
@@ -907,6 +961,7 @@ if SHOW_ANIM or SAVE_ANIM or PLOT_DATA or PRINT_TXYZ:
     ZEMd  = np.zeros(nSamplesp1)  # Zero Effort Miss distance
     Thoff = np.zeros(nSamplesp1)  # Target horiz. offset angle sines
     Tvoff = np.zeros(nSamplesp1)  # Target vert. offset angle sines
+    THTtd = np.zeros(nSamplesp1)  # Target pitch (theta) angle (deg)
     
 
 def collectData(i, t, S):
@@ -956,16 +1011,19 @@ def collectData(i, t, S):
     losr = wsgn*la.norm(Wlosb)
     vcls = la.norm(Vclose(Vt, Vm, Ulos, True))
     dcls = Dclose(S)
-    acmg = asgn*la.norm(dVm)/g
-    zemd = la.norm(ZEMn(Rlos, Vrel(Vt,Vm), tgo))
-    
-    Vc, Tgo = calcVcTgo(Pt, Vt, Pm, Vm)
+    acmg = asgn*la.norm(dVm)/g    
+    if PNAV == PN_ATPN or PNAV == PN_APPN or PNAV == PN_AZEM:
+        zemd = la.norm(AZEMn(Rlos, Vrel(Vt,Vm), dVt, tgo))
+    else:
+        zemd = la.norm(ZEMn(Rlos, Vrel(Vt,Vm), tgo))
     
     """
+    # Verify vcls and tgo with that returned by calcVcTgo().
+    Vc, Tgo = calcVcTgo(Pt, Vt, Pm, Vm)    
     np.testing.assert_almost_equal(vcls, Vc, 3)
     np.testing.assert_almost_equal(tgo, Tgo, 4)
     """
-         
+    
     # Display current missile and target states and
     # intercept status; collect data for plotting
     # or printing.
@@ -1036,6 +1094,7 @@ def collectData(i, t, S):
         ZEMd[i]  = zemd
         Thoff[i] = sin(horiz*RPD)
         Tvoff[i] = sin(vert*RPD)
+        THTtd[i] = TgtTheta*DPR
         
     return
 
@@ -1322,7 +1381,7 @@ if __name__ == "__main__":
                 print("Cannot save animation, no animation writers available!")
                 print("Try installing ffmpeg or avconv.")
                 SAVE_ANIM = False
-            
+    
     if SHOW_ANIM or SAVE_ANIM:
         fig3D = plt.figure(13, figsize=(6,6), dpi=100)
         ax3D  = fig3D.add_subplot(111, projection='3d',
@@ -1513,7 +1572,7 @@ if __name__ == "__main__":
             S = rk4.step(S, dotS)
             
         if tStep == last_tStep:
-            num_trys =num_trys + 1
+            num_trys = num_trys + 1
     
     S = rk4.get_Sprev()
     t = S[0]
@@ -2068,19 +2127,26 @@ if __name__ == "__main__":
         #        where the missile or target have pitched past
         #        +/- 90 degrees.
         
-        UVm  = Uvec(Vme[:,0:iend])
-        PSIm  = np.arctan2(-UVm[0,1,0:iend], UVm[0,0,0:iend],)*DPR
-        THTm  = np.arctan2(UVm[0,2,0:iend], 
+        UVm   = Uvec(Vme[:,0:iend])
+        PSImd = np.arctan2(-UVm[0,1,0:iend], UVm[0,0,0:iend],)*DPR
+        THTmd = np.arctan2(UVm[0,2,0:iend], 
                            la.norm([UVm[0,0,0:iend], 
                                     UVm[0,1,0:iend]], axis=0))*DPR
         PHIm  = wspin*Time[0:iend]
         PHImd = np.fmod(PHIm[0:iend], twopi)*DPR
         
         UVt   = Uvec(Vte[:,0:iend])
-        PSIt  = np.arctan2(-UVt[0,1,0:iend], UVt[0,0,0:iend])*DPR 
-        THTt  = np.arctan2(UVt[0,2,0:iend],
-                           la.norm([UVt[0,0,0:iend], 
-                                    UVt[0,1,0:iend]], axis=0))*DPR
+        PSItd = np.arctan2(-UVt[0,1,0:iend], UVt[0,0,0:iend])*DPR       
+        """
+        THTtd  = np.arctan2(UVt[0,2,0:iend],
+                            la.norm([UVt[0,0,0:iend], 
+                                     UVt[0,1,0:iend]], axis=0))*DPR
+        """
+        for i in range(0, iend):
+            if ( abs(THTtd[i]) > 90.0):
+                # Account for looping maneuver.
+                PSItd[i] = np.fmod(PSItd[i] + 180.0, 360.0)
+                
         PHIt = np.zeros([iend])
         for i in range(0, iend):
             PHIt[i] = bankAngle(Ate[0,:,i],Vte[0,:,i])
@@ -2112,8 +2178,8 @@ if __name__ == "__main__":
                                    Pte[0,0,i], -Pte[0,1,i], -Pte[0,2,i]),
                       file=f)
                 print(fmt2 % \
-                      (-9999, -9999, PHImd[i], THTm[i], PSIm[i], 
-                                     PHItd[i], THTt[i], PSIt[i]),
+                      (-9999, -9999, PHImd[i], THTmd[i], PSImd[i], 
+                                     PHItd[i], THTtd[i], PSItd[i]),
                       file=f)
         
             # Append padded time record for rendering and display of
@@ -2126,8 +2192,8 @@ if __name__ == "__main__":
                                              Pte[0,0,istop], -Pte[0,1,istop], -Pte[0,2,istop]),
                   file=f)
             print(fmt2 % \
-                  (-9999, -9999, PHImd[istop], THTm[istop], PSIm[istop], 
-                                 PHItd[istop], THTt[istop], PSIt[istop]),
+                  (-9999, -9999, PHImd[istop], THTmd[istop], PSImd[istop], 
+                                 PHItd[istop], THTtd[istop], PSItd[istop]),
                   file=f)
             
             print("\nTXYZ.OUT trajectory data written to:  %s" % txyz_path)
