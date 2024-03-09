@@ -63,7 +63,7 @@ class RK4_Solver:
         """
         S = np.zeros(self.n)
 
-        for i in range(self.n) :
+        for i in range(self.n):
             S[i] = St[i] + dS[i]*h
 
         return S
@@ -71,7 +71,7 @@ class RK4_Solver:
   
     ## Public Methods
   
-    def init(self, S) :
+    def init(self, S):
         """
         Initializes the state vectors.
         """
@@ -94,7 +94,7 @@ class RK4_Solver:
         K3 = dotS(self.n, self._substep(self.hh, Scurr, K2))
         K4 = dotS(self.n, self._substep(self.h,  Scurr, K3))
 
-        for i in range(self.n) :
+        for i in range(self.n):
             self.S[i] = Scurr[i] + \
                         (K1[i] + 2.0*(K2[i] + K3[i]) + K4[i])*self.h6th
 
@@ -116,7 +116,7 @@ class RK4_Solver:
         K3 = dotS(self.n, self._substep(self.hh, self.Sprev, K2))
         K4 = dotS(self.n, self._substep(self.h,  self.Sprev, K3))
 
-        for i in range(self.n) :
+        for i in range(self.n):
             self.dS[i]  = (K1[i] + 2.0*(K2[i] + K3[i]) + K4[i])*self.sixth
 
         return self.dS
@@ -140,21 +140,21 @@ class RK4_Solver:
         return self.dS
         
         
-    def get_Sinit(self) :
+    def get_Sinit(self):
         """
-        Returns initial state vector
+        Returns initial state vector.
         """
         return self.Sinit
         
     
-    def get_Sprev(self) :
+    def get_Sprev(self):
         """
         Returns state vector for the previous time step.
         """
         return self.Sprev
         
     
-    def get_Scurr(self) :
+    def get_Scurr(self):
         """
         Returns state vector for the current time step.
         """
