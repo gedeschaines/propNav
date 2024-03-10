@@ -134,10 +134,10 @@ PLOT_FIGS = { 1:True,  # Closing distance at tStop
             }
 
 """
-Plot only selected figures.
+# Plot only selected figures.
 for ifig in PLOT_FIGS.keys():
     PLOT_FIGS[ifig] = False
-
+    
 PLOT_FIGS[5] = True
 PLOT_FIGS[6] = True
 PLOT_FIGS[7] = True
@@ -154,6 +154,27 @@ Uxi = np.array([1.0, 0.0, 0.0])
 Uyi = np.array([0.0, 1.0, 0.0])
 Uzi = np.array([0.0, 0.0, 1.0])
 
+# Set missile type and acceleration maximum.
+
+SAM = 1  # For engagements described in Caveats section of propNav README.
+AAM = 2  # For engagements presented in Section 3, Modules 3 & 4, Section 4,
+         # Module 4 of ref [4], and Section 2, Module 3 of ref [5].
+MSL = SAM
+
+global Ammax
+
+Gmmax = {SAM:8, AAM:30}  # maximum missile acceleration (g's)
+Ammax = Gmmax[MSL]*g     # maximum missile acceleration (meters/s/s)
+
+# Set minimum miss distance (meters).
+
+global MinMissDist
+
+if MSL == SAM:
+    MinMissDist = 3.0
+else:
+    MinMissDist = 6.0
+    
 # Proportional Navigation law (method) selection.
 
 PN_TRUE = 1  # With guidance command preservation (GCP1) per ref [3]
@@ -170,25 +191,6 @@ global Nm, Nt
 
 Nm = 4    # proportional navigation constant
 Nt = 3.0  # target turning acceleration (g's)
-
-# Set missile type and acceleration maximum.
-
-SAM = 1  # For engagements described in Caveats section of propNav README.
-AAM = 2  # For engagements presented in Section 3, Modules 3 & 4, Section 4,
-         # Module 4 of ref [4], and Section 2, Module 3 of ref [5].
-MSL = SAM
-
-global Ammax
-
-Gmmax = {SAM:8, AAM:30}  # maximum missile acceleration (g's)
-Ammax = Gmmax[MSL]*g     # maximum missile acceleration (meters/s/s)
-
-# Set minimum miss distance (meters).
-
-if MSL == SAM:
-    MinMissDist = 3.0
-else:
-    MinMissDist = 6.0
     
 # Define target and missile initial states.
 
@@ -886,23 +888,28 @@ def dotS(n, S):
     return dS
 
 def Stop(S):
-    Vt, Pt, Vm, Pm, TgtTheta = getS(S)
-    if (S[0] >= T_STOP) or (np.dot(Prel(Vm,Vt), Uvec(Prel(Pt, Pm))) < 0.0):
+    Vt, Pt, Vm, Pm, _ = getS(S)
+    if (S[0] >= T_STOP) or (np.dot(Vrel(Vm,Vt), Uvec(Prel(Pt, Pm))) < 0.0):
         return True
     return False
 
 def Dclose(S):
-    Vt, Pt, Vm, Pm, TgtTheta = getS(S)
+    Vt, Pt, Vm, Pm, _ = getS(S)
     dtm = la.norm(Prel(Pt, Pm))
     return dtm
 
-DT_FINAL = T_STEP/20.0
+DT_FINAL = T_STEP/50.0
 def delT(S):
     # This routine is called to reduce integration step size
     # at engagement endgame to refine time of intercept. 
+    global MinMissDist
+    
     if Dclose(S) < 100.0:
         if Dclose(S) < 10.0:
-            h = DT_FINAL  # final reduction
+            if Dclose(S) < MinMissDist:
+                h = DT_FINAL  # final reduction
+            else:
+                h = T_STEP/20.0
         else:
             h = T_STEP/10.0
     else:
