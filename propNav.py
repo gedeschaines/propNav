@@ -69,7 +69,13 @@
 #      Jersey, July 2018. Web Available at discover.dtic.mil:
 #      https://apps.dtic.mil/sti/pdfs/AD1055301.pdf
 #
-#  [8] Ben Dickinson, "Time to Go Estimation - Guidance Fundamentals II - Section 1.1",
+#  [8] Neil F. Palumbo, Ross A. Blauwkamp, and Justin M. Lloyd,
+#      "Modern Homing Missile Guidance Theory and Techniques", rev 2018, Johns
+#      Hopkins APL Technical Digest, VOL 29, No 1, 2010. Web
+#      available at secwww.jhuapl.edu/techdigest:
+#      https://secwww.jhuapl.edu/techdigest/Content/techdigest/pdf/V29-N01/29-01-Palumbo_Homing.pdf
+#
+#  [9] Ben Dickinson, "Time to Go Estimation - Guidance Fundamentals II - Section 1.1",
 #      last updated Jan. 6, 2024. Web available at www.youtube.com:
 #      https://youtu.be/sbcPfnm30vA?si=nngS_KMwzqJyxMv3
 # 
@@ -209,7 +215,8 @@ else:
         Pm0   = np.array([    0.0, 6096.0, 3048.0])
         magVm = 457.2
     else:
-        # For Section 3, Modules 3 & 4, Section 4, Module 4 of ref [4].
+        # For Section 3, Modules 3 & 4, Section 4, Module 4 of ref [4],
+        # and Section 1.1 of ref [9].
         Pt0   = np.array([12192.0, 6096.0, 3048.0])
         Vt0   = np.array([ -304.8,    0.0,    0.0])
         Pm0   = np.array([    0.0, 6096.0, 3048.0])
@@ -277,7 +284,7 @@ else:
         T_STOP = 15.5
     elif (int(Nt) == 6) and \
         ((PNAV == PN_ATPN) or (PNAV == PN_APPN) or (PNAV == PN_AZEM)):
-        # For Section 1.1 of ref [8].
+        # For Section 1.1 of ref [9].
         T_STOP = 13.5
     else:
         # For Section 3, Modules 3 & 4, Section 4, Module 4 of ref [4].
@@ -470,6 +477,8 @@ def calcVcTgo(Pt, Vt, Pm, Vm):
 def ZEMn(Rlos, Vtm, tgo):
     # Zero Effort Miss normal to line-of-sight (LOS) vector Rlos
     # towards a non-maneuvering target at time-to-go tgo.
+    # See derivation of equation (22) on pg 48 in ref [8] and
+    # discussion of ZEM in Section 4, Module 3 ref [4].
     Ulos = Uvec(Rlos)
     ZEM  = Rlos + Vtm*tgo
     ZEMr = np.dot(ZEM, Ulos)*Ulos
@@ -494,6 +503,8 @@ def ZEMn(Rlos, Vtm, tgo):
 def AZEMn(Rlos, Vtm, At, tgo):
     # Augmented Zero Effort Miss normal to line-of-sight (LOS) vector
     # Rlos towards an accelerating target at time-to-go tgo.
+    # See derivation of equation (27) on pg 51 in ref [8] and
+    # discussion of APN in ref [9].
     Ulos  = Uvec(Rlos)
     ZEMA  = Rlos + Vtm*tgo + (At/2.0)*tgo**2
     ZEMAr = np.dot(ZEMA, Ulos)*Ulos
@@ -598,11 +609,14 @@ def Amslc(Rlos, Vt, At, Vm, N):
         Acmdb[0] = 0.0  # no thrust control
         Acmd = np.matmul(Mbi.transpose(), Acmdb)
     elif PNAV == PN_AZEM:
+        # See derivation of equation (27) on pg 51 in ref [8].
         # NOTE: Time-to-go calculated here assumes non-accelerating target.
         tgo = timeToGo(Rlos, Vt, Vm)
         Acmd = N*AZEMn(Rlos, Vtm, At, tgo)/(tgo**2)
         Acmd = Acmd - np.dot(Acmd, Uvec(Vm))*Uvec(Vm)  # no thrust control    
     elif PNAV == PN_ZEM:
+        # See derivation of equation (22) on pg 48 in ref [8].
+        # NOTE: Time-to-go calculated here assumes non-accelerating target.
         tgo = timeToGo(Rlos, Vt, Vm)
         Acmd = N*ZEMn(Rlos, Vtm, tgo)/(tgo**2)
         Acmd = Acmd - np.dot(Acmd, Uvec(Vm))*Uvec(Vm)  # no thrust control

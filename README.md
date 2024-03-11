@@ -203,7 +203,7 @@ An MP4 video of animated rendering produced by **threeD** for several **propNav*
 
 ## References ##
 
-Although references [3] through [8] were not consulted during development of the original Mathcad 3-DOF kinematic ideal pure proportional navigation missile model from which this Python program was derived, they were beneficial for implementation of "True", "ZEM" and "Augmented" proportional navigation formulations, and as validation sources. Reference [6] was consulted to verify original Mathcad expressions for inertial line of sight rotation rate calculations, reformulations to use standard guidance definition for "closing velocity" as "-dRlos/dt", time-to-go estimations to use collision closing velocity, and incorporation of Augmented True and Pure proportional navigation guidance laws. Reference [7] was consulted to resolve situations where gimble lock may occur during high g target pitching maneuvers for hard coded AAM engagement scenario cases replicating those presented in references [4], [5] and [8].
+Although references [3] through [9] were not consulted during development of the original Mathcad 3-DOF kinematic ideal pure proportional navigation missile model from which this Python program was derived, they were beneficial for implementation of "True", "ZEM" and "Augmented" proportional navigation formulations, and as verification & validation sources. Reference [6] was consulted to verify original Mathcad expressions for inertial line of sight rotation rate calculations, reformulations to use standard guidance definition for "closing velocity" as "-dRlos/dt", time-to-go estimations to use collision closing velocity, and incorporation of Augmented True and Pure proportional navigation guidance laws. Reference [7] was consulted to resolve situations where gimble lock may occur during high g target pitching maneuvers for hard coded AAM engagement scenario cases replicating those presented in references [4], [5] and [9].
 
 \[1] Paul Zarchan and A. Richard Seebass (Editor-in-Chief), "Tactical and Strategic Missile Guidance (Progress in Astronautics and Aeronautics, Vol 124)", American Institute of Aeronautics and Astronautics, Washington, D.C.,1990.
 
@@ -219,7 +219,9 @@ Although references [3] through [8] were not consulted during development of the
 
 \[7] David Hosier, "Avoiding Gimbal Lock in a Trajectory Simulation", U.S. Army Armament Research, Development and Engineering Center ARDEC, METC, Technical Report ARMET-TR-17051, Picatinny Arsenal, New Jersey, July 2018. [Web available at discover.dtic.mil](https://apps.dtic.mil/sti/pdfs/AD1055301.pdf)
 
-\[8] Ben Dickinson, "Time to Go Estimation - Guidance Fundamentals II - Section 1.1", last updated Jan. 6, 2024. [Web available at www.youtube.com](https://youtu.be/sbcPfnm30vA?si=nngS_KMwzqJyxMv3)
+\[8] Neil F. Palumbo, Ross A. Blauwkamp, and Justin M. Lloyd, "Modern Homing Missile Guidance Theory and Techniques", rev 2018, Johns Hopkins APL Technical Digest, VOL 29, No 1, 2010. [Web available at secwww.jhuapl.edu/techdigest/](https://secwww.jhuapl.edu/techdigest/Content/techdigest/pdf/V29-N01/29-01-Palumbo_Homing.pdf)
+
+\[9] Ben Dickinson, "Time to Go Estimation - Guidance Fundamentals II - Section 1.1", last updated Jan. 6, 2024. [Web available at www.youtube.com](https://youtu.be/sbcPfnm30vA?si=nngS_KMwzqJyxMv3)
 
 ## Disclaimers ##
 
