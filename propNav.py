@@ -504,7 +504,7 @@ def AZEMn(Rlos, Vtm, At, tgo):
     # Augmented Zero Effort Miss normal to line-of-sight (LOS) vector
     # Rlos towards an accelerating target at time-to-go tgo.
     # See derivation of equation (27) on pg 51 in ref [8] and
-    # discussion of APN in ref [9].
+    # discussion of APN in Section 2, Module 2 of ref [5].
     Ulos  = Uvec(Rlos)
     ZEMA  = Rlos + Vtm*tgo + (At/2.0)*tgo**2
     ZEMAr = np.dot(ZEMA, Ulos)*Ulos
@@ -1902,7 +1902,7 @@ if __name__ == "__main__":
         if PLOT_FIGS[6]:
             ## Figure 6 - Msl/Tgt velocity magnitude vs time of flight
             ##            up to point just before flight termination.
-            ##            Note; This is a constant velocity missile.
+            ##            Note: This is a constant velocity missile.
             figures.append(plt.figure(6, figsize=(6,3), dpi=80))
             text = "Msl/Tgt velocity magnitude profiles ({0}, N={1}, At={2})"\
                 .format(PN_LAWS[PNAV], int(Nm), int(Nt))
