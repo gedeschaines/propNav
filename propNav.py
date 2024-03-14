@@ -520,6 +520,14 @@ def Wlos(Vt, Vm, Rlos, Ulos):
     # is equivalent to:
     #
     #   Wlos = np.cross(Rlos, Vtm)/np.dot(Rlos, Rlos)
+    """
+    Wlos2 = np.cross(Rlos, Vrel(Vt,Vm))/np.dot(Rlos, Rlos)
+    try:
+        np.testing.assert_almost_equal(Wlos2, Wlos, 6)
+    except:
+        print("Wlos:   (%8.3f, %8.3f, %8.3f)" % (Wlos[0], Wlos[1], Wlos[2]))
+        print("Wlos2:  (%8.3f, %8.3f, %8.3f)" % (Wlos2[0], Wlos2[1], Wlos2[2]))
+    """
     #
     # which can be reduced to:
     #
@@ -530,6 +538,43 @@ def Wlos(Vt, Vm, Rlos, Ulos):
     #
     # as shown in derivation of equation (2.18) in ref [6].
     return Wlos
+
+def applyGCP(Ac, Ulos, Vm):
+    """
+    Apply guidance command preservation per eq (45) on pg 38 of ref [3].
+    
+    Parameters
+    ----------
+
+    Ac : float 3-vector
+        Commanded missile guidance acceleration (inertial).
+    Ulos : float 3-vector
+        Unit vector along LOS from missile to target (inertial).    
+    Vm : float 3-vector
+        Velocity (inertial) of missile.
+
+    Returns
+    -------
+    Acmd : float 3-Vector
+        Acceleration commanded.
+        
+    """
+    UVm  = Uvec(Vm)
+    Am   = Ac - np.dot(Ac, UVm)*UVm
+    Agcp = ((Am[0] - np.dot(Ac, UVm))/np.dot(Ulos, UVm))*Ulos + Ac
+    Acmd = Agcp - np.dot(Agcp, UVm)*UVm  # no thrust control
+    """
+    try:
+        np.testing.assert_almost_equal(np.dot(Agcp, UVm), Am[0], 6)
+        np.testing.assert_almost_equal(np.dot(Agcp, Uvec(Ac)), la.norm(Ac), 6)
+    except:
+        print("\nAc:    (%8.3f, %8.3f, %8.3f)" % (Ac[0], Ac[1], Ac[2]))
+        print("Agcp:  (%8.3f, %8.3f, %8.3f)" % (Agcp[0], Agcp[1], Agcp[2]))
+        print("Acmd:  (%8.3f, %8.3f, %8.3f)" % (Acmd[0], Acmd[1], Acmd[2]))
+        print("||Ac||, ||Agcp||, ||Acmd||:  %8.3f  %8.3f  %8.3f" % \
+              (la.norm(Ac), la.norm(Agcp), la.norm(Acmd)))
+    """
+    return Acmd
 
 def Amslc(Rlos, Vt, At, Vm, N):
     """
@@ -581,28 +626,36 @@ def Amslc(Rlos, Vt, At, Vm, N):
             Atx = np.matmul(Mbi.transpose(), Atb)
             np.testing.assert_almost_equal(la.norm(At - Atx), 0.0, 6)
         except:
-            print("At orig:  (%8.3f, %8.3f, %8.3f)", (At[0], At[1], At[2]))
-            print("At xfrm:  (%8.3f, %8.3f, %8.3f)", (Atx[0], Atx[1], Atx[2]))
+            print("At orig:  (%8.3f, %8.3f, %8.3f)" % (At[0], At[1], At[2]))
+            print("At xfrm:  (%8.3f, %8.3f, %8.3f)" % (Atx[0], Atx[1], Atx[2]))
             sys.exit()
         """
         # See derivation of equation (3.8) in ref [6].
         #
         if PNAV == PN_APPN:
             # 3.1.1 Version 1 (PN-1) Pure PN equation (3.2)
-            PN_1i = N*np.cross(Wlos(Vt, Vm, Rlos, Ulos), Vm)
-            PN_1b = np.matmul(Mbi, PN_1i)  # eq. (3.3)
-            PN_1b[0] = 0.0                 # eq. (3.4)
+            Ac    = N*np.cross(Wlos(Vt, Vm, Rlos, Ulos), Vm)
+            PN_1b = np.matmul(Mbi, Ac)  # eq. (3.3)
+            # Eq. (3.4) not required since Ac dot Vm is zero by definition.
+            # PN_1b[0] = 0.0  # eq. (3.4)
+            """
+            np.testing.assert_almost_equal(np.dot(Ac,Vm), 0.0, 6)
+            np.testing.assert_almost_equal(PN_1b[0], 0.0, 6)
+            """
             PNG = PN_1b
-        if PNAV == PN_ATPN:
+        else: # PNAV == PN_ATPN
             # 3.1.2 Version 2 (PN-2) True PN equation (3.5)
-            UVm = Uvec(Vm)
-            Vc  = la.norm(Vclose(Vt, Vm, Ulos))
-            Ac  = N*Vc*np.cross(Wlos(Vt, Vm, Rlos, Ulos), Ulos)
-            # Apply guidance command preservation per eq (45) on pg 38 of ref [3].
-            PN_2i = ((Ac[0] - np.dot(Ac, UVm))/np.dot(Ulos, UVm))*Ulos + Ac
-            PN_2b = np.matmul(Mbi, PN_2i)  # eq. (3.6)
-            PN_2b[0] = 0.0                 # eq. (3.7)
-            PNG = PN_2b  # Section 2, Module 3 of ref [5].
+            Vc    = la.norm(Vclose(Vt, Vm, Ulos))
+            Ac    = N*Vc*np.cross(Wlos(Vt, Vm, Rlos, Ulos), Ulos)
+            Agcp  = applyGCP(Ac, Ulos, Vm)
+            PN_2b = np.matmul(Mbi, Agcp)  # eq. (3.6)
+            # Eq. (3.7) not required since Agcp dot Vm is zero by definition.
+            # PN_2b[0] = 0.0  # eq. (3.7)
+            """
+            np.testing.assert_almost_equal(np.dot(Agcp,Vm), 0.0, 6)
+            np.testing.assert_almost_equal(PN_2b[0], 0.0, 6)
+            """
+            PNG = PN_2b
         #
         # 3.2 Augmented PN (APN) Guidance
         Acmdb = PNG + np.matmul(Mbi, (N/2.0)*At)  # eq. (3.8)
@@ -611,35 +664,21 @@ def Amslc(Rlos, Vt, At, Vm, N):
     elif PNAV == PN_AZEM:
         # See derivation of equation (27) on pg 51 in ref [8].
         # NOTE: Time-to-go calculated here assumes non-accelerating target.
-        tgo = timeToGo(Rlos, Vt, Vm)
-        Acmd = N*AZEMn(Rlos, Vtm, At, tgo)/(tgo**2)
-        Acmd = Acmd - np.dot(Acmd, Uvec(Vm))*Uvec(Vm)  # no thrust control    
+        tgo  = timeToGo(Rlos, Vt, Vm)
+        Ac   = N*AZEMn(Rlos, Vtm, At, tgo)/(tgo**2)
+        Acmd = applyGCP(Ac, Ulos, Vm)
     elif PNAV == PN_ZEM:
         # See derivation of equation (22) on pg 48 in ref [8].
         # NOTE: Time-to-go calculated here assumes non-accelerating target.
-        tgo = timeToGo(Rlos, Vt, Vm)
-        Acmd = N*ZEMn(Rlos, Vtm, tgo)/(tgo**2)
-        Acmd = Acmd - np.dot(Acmd, Uvec(Vm))*Uvec(Vm)  # no thrust control
+        tgo  = timeToGo(Rlos, Vt, Vm)
+        Ac   = N*ZEMn(Rlos, Vtm, tgo)/(tgo**2)
+        Acmd = applyGCP(Ac, Ulos, Vm)
     elif PNAV == PN_PURE:
         Acmd = N*np.cross(Wlos(Vt, Vm, Rlos, Ulos), Vm)
     else: # PNAV == PN_TRUE
-        UVm = Uvec(Vm)
-        Vc  = la.norm(Vclose(Vt, Vm, Ulos))
-        Ac  = N*Vc*np.cross(Wlos(Vt, Vm, Rlos, Ulos), Ulos)
-        # Apply guidance command preservation per eq (45) on pg 38 of ref [3].
-        Agcp = ((Ac[0] - np.dot(Ac, UVm))/np.dot(Ulos, UVm))*Ulos + Ac
-        Acmd = Agcp - np.dot(Agcp, UVm)*UVm  # no thrust control
-        """
-        try:
-            np.testing.assert_almost_equal(np.dot(Agcp, UVm), Ac[0], 6)
-            np.testing.assert_almost_equal(np.dot(Agcp, Uvec(Ac)), la.norm(Ac), 6)
-        except:
-            print("\nAc:    (%8.3f, %8.3f, %8.3f)" % (Ac[0], Ac[1], Ac[2]))
-            print("Agcp:  (%8.3f, %8.3f, %8.3f)" % (Agcp[0], Agcp[1], Agcp[2]))
-            print("Acmd:  (%8.3f, %8.3f, %8.3f)" % (Acmd[0], Acmd[1], Acmd[2]))
-            print("||Ac||, ||Agcp||, ||Acmd||:  %8.3f  %8.3f  %8.3f" % \
-                  (la.norm(Ac), la.norm(Agcp), la.norm(Acmd)))
-        """
+        Vc   = la.norm(Vclose(Vt, Vm, Ulos))
+        Ac   = N*Vc*np.cross(Wlos(Vt, Vm, Rlos, Ulos), Ulos)
+        Acmd = applyGCP(Ac, Ulos, Vm)
     return Acmd
 
 def Amsla(Amcmd, Ammax):
