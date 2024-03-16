@@ -559,21 +559,26 @@ def applyGCP(Ac, Ulos, Vm):
         Acceleration commanded.
         
     """
-    UVm  = Uvec(Vm)
-    Am   = Ac - np.dot(Ac, UVm)*UVm
-    Agcp = ((Am[0] - np.dot(Ac, UVm))/np.dot(Ulos, UVm))*Ulos + Ac
-    Acmd = Agcp - np.dot(Agcp, UVm)*UVm  # no thrust control
-    """
-    try:
-        np.testing.assert_almost_equal(np.dot(Agcp, UVm), Am[0], 6)
-        np.testing.assert_almost_equal(np.dot(Agcp, Uvec(Ac)), la.norm(Ac), 6)
-    except:
-        print("\nAc:    (%8.3f, %8.3f, %8.3f)" % (Ac[0], Ac[1], Ac[2]))
-        print("Agcp:  (%8.3f, %8.3f, %8.3f)" % (Agcp[0], Agcp[1], Agcp[2]))
-        print("Acmd:  (%8.3f, %8.3f, %8.3f)" % (Acmd[0], Acmd[1], Acmd[2]))
-        print("||Ac||, ||Agcp||, ||Acmd||:  %8.3f  %8.3f  %8.3f" % \
-              (la.norm(Ac), la.norm(Agcp), la.norm(Acmd)))
-    """
+    UVm = Uvec(Vm)
+    Am  = Ac - np.dot(Ac, UVm)*UVm
+    dot_Ulos_UVm = np.dot(Ulos, UVm)
+    if abs(dot_Ulos_UVm) > 0.0:
+        Agcp = ((Am[0] - np.dot(Ac, UVm))/np.dot(Ulos, UVm))*Ulos + Ac
+        Acmd = Agcp - np.dot(Agcp, UVm)*UVm  # no thrust control
+        """
+        try:
+            np.testing.assert_almost_equal(np.dot(Agcp, UVm), Am[0], 6)
+            np.testing.assert_almost_equal(np.dot(Agcp, Uvec(Ac)), la.norm(Ac), 6)
+        except:
+            print("\nAc:    (%8.3f, %8.3f, %8.3f)" % (Ac[0], Ac[1], Ac[2]))
+            print("Agcp:  (%8.3f, %8.3f, %8.3f)" % (Agcp[0], Agcp[1], Agcp[2]))
+            print("Acmd:  (%8.3f, %8.3f, %8.3f)" % (Acmd[0], Acmd[1], Acmd[2]))
+            print("||Ac||, ||Agcp||, ||Acmd||:  %8.3f  %8.3f  %8.3f" % \
+                  (la.norm(Ac), la.norm(Agcp), la.norm(Acmd)))
+        """
+    else:
+        # Missile body x-axis (uVM) perpendicular to LOS (Ulos).
+        Acmd = Ac - np.dot(Ac, UVm)*UVm
     return Acmd
 
 def Amslc(Rlos, Vt, At, Vm, N):
@@ -607,6 +612,7 @@ def Amslc(Rlos, Vt, At, Vm, N):
         Acceleration commanded.
         
     """
+    global g, Nt, UWt
     Ulos = Uvec(Rlos)
     Vtm  = Vrel(Vt, Vm)
     if PNAV == PN_APPN or PNAV == PN_ATPN:
@@ -633,34 +639,45 @@ def Amslc(Rlos, Vt, At, Vm, N):
         # See derivation of equation (3.8) in ref [6].
         #
         if PNAV == PN_APPN:
-            # 3.1.1 Version 1 (PN-1) Pure PN equation (3.2)
-            Ac    = N*np.cross(Wlos(Vt, Vm, Rlos, Ulos), Vm)
-            PN_1b = np.matmul(Mbi, Ac)  # eq. (3.3)
+            # 3.1.1 Version 1 (PN-1) Pure PN equations (3.2)-(3.4).
+            Ws  = Wlos(Vt, Vm, Rlos, Ulos)
+            UWs = Uvec(Ws)
+            UVm = Uvec(Vm)
+            # Atn is normal to UVm.
+            Atn = At - np.dot(At, UVm)*UVm
+            # Ats in plane containing vector UWs x UVm and vector UVm
+            UWts = Uvec(np.cross(UVm, np.cross(UWs, UVm)))
+            Ats  = Atn - np.dot(Atn, UWts)*UWts
+            # Ac is normal to UVm
+            Ac    = N*np.cross(Ws, Vm) + (N/2)*Ats  # eqs (3.2) & (3.8) inertial
+            PN_1b = np.matmul(Mbi, Ac)
             # Eq. (3.4) not required since Ac dot Vm is zero by definition.
             # PN_1b[0] = 0.0  # eq. (3.4)
-            """
-            np.testing.assert_almost_equal(np.dot(Ac,Vm), 0.0, 6)
+            np.testing.assert_almost_equal(np.dot(Ac,UVm), 0.0, 6)
             np.testing.assert_almost_equal(PN_1b[0], 0.0, 6)
-            """
-            PNG = PN_1b
+            PNGb = PN_1b
         else: # PNAV == PN_ATPN
-            # 3.1.2 Version 2 (PN-2) True PN equation (3.5)
-            Vc    = la.norm(Vclose(Vt, Vm, Ulos))
-            Ac    = N*Vc*np.cross(Wlos(Vt, Vm, Rlos, Ulos), Ulos)
+            # 3.1.2 Version 2 (PN-2) True PN equations (3.5)-(3.7).
+            Ws  = Wlos(Vt, Vm, Rlos, Ulos)
+            UWs = Uvec(Ws)
+            Vc  = la.norm(Vclose(Vt, Vm, Ulos))
+            # Atn is normal to Ulos.
+            Atn = At - np.dot(At, Ulos)*Ulos
+            # Ats in plane containing vector UWs x Ulos and vector Ulos
+            UWts = Uvec(np.cross(Ulos, np.cross(UWs, Ulos)))
+            Ats  = Atn - np.dot(Atn, UWts)*UWts
+            # Ac is normal to Ulos
+            Ac    = N*Vc*np.cross(Ws, Ulos) + (N/2)*Ats  # eqs (3.5) & (3.8) inertial
             Agcp  = applyGCP(Ac, Ulos, Vm)
             PN_2b = np.matmul(Mbi, Agcp)  # eq. (3.6)
             # Eq. (3.7) not required since Agcp dot Vm is zero by definition.
             # PN_2b[0] = 0.0  # eq. (3.7)
-            """
-            np.testing.assert_almost_equal(np.dot(Agcp,Vm), 0.0, 6)
+            np.testing.assert_almost_equal(np.dot(Agcp,Uvec(Vm)), 0.0, 6)
             np.testing.assert_almost_equal(PN_2b[0], 0.0, 6)
-            """
-            PNG = PN_2b
+            PNGb = PN_2b
         #
         # 3.2 Augmented PN (APN) Guidance
-        Acmdb = PNG + np.matmul(Mbi, (N/2.0)*At)  # eq. (3.8)
-        Acmdb[0] = 0.0  # no thrust control
-        Acmd = np.matmul(Mbi.transpose(), Acmdb)
+        Acmd = np.matmul(Mbi.transpose(), PNGb) # eq (3.8) inertial
     elif PNAV == PN_AZEM:
         # See derivation of equation (27) on pg 51 in ref [8].
         # NOTE: Time-to-go calculated here assumes non-accelerating target.
@@ -792,7 +809,10 @@ def Atgt(UWt, Pt, Vt, n, TgtTheta):
         Vtb = np.matmul(Mbi, Vt)
         # Calculate aircraft body rotational rate (rad/sec).
         OmegaDot    = (n*g)/magVt                  # total rate
-        TgtThetaDot = (((n+loss)*g)/magVt)*UWt[1]  # pitch rate
+        ## NOTE: Set loss to zero for constant target rotation rate as modeled
+        ##       in AAM engagement cases presented in refs [4], [5] and [9]. 
+        loss = 0.0
+        TgtThetaDot = (((n-loss)*g)/magVt)*UWt[1]  # pitch rate
         # Calculate inertial acceleration in target body frame.
         Atb = np.cross(OmegaDot*UWtb, Vtb.flatten())
         # Rotate inertial acceleration into inertial space frame.
@@ -942,7 +962,7 @@ def dotS(n, S):
 
 def Stop(S):
     Vt, Pt, Vm, Pm, _ = getS(S)
-    if (S[0] >= T_STOP) or (np.dot(Vrel(Vm,Vt), Uvec(Prel(Pt, Pm))) < 0.0):
+    if (S[0] >= T_STOP) or (np.dot(Vrel(Vm,Vt), Uvec(Prel(Pt,Pm))) < 0.0):
         return True
     return False
 
@@ -1953,7 +1973,7 @@ if __name__ == "__main__":
             plt.grid()
             plt.plot(Time[0:istop], Velm[0:istop], '-b')
             plt.plot(Time[0:istop], Velt[0:istop], '-r')
-            plt.legend(('Missile','Target'), loc='lower right')
+            plt.legend(('Missile','Target'), loc='center right')
        
         if PLOT_FIGS[7]:
             ## Figure 7 - Msl/Tgt acceleration vs time of flight up
