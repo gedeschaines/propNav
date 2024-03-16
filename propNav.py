@@ -638,46 +638,42 @@ def Amslc(Rlos, Vt, At, Vm, N):
         """
         # See derivation of equation (3.8) in ref [6].
         #
+        Ws  = Wlos(Vt, Vm, Rlos, Ulos)
+        UWs = Uvec(Ws)
+        UVm = Uvec(Vm)
+        # Vector Atn is the rejection of At with vector Ulos and is normal
+        # to Ulos, and represents the components of target acceleration At
+        # which can contribute to line-of-sight (LOS) rotation rate Ws.
+        Atn = At - np.dot(At, Ulos)*Ulos
+        # Vector Ats is the rejection of Atn with vector UWts and is in
+        # the plane containing both vector UWs x Ulos and vector Ulos.
+        UWts = Uvec(np.cross(Ulos, np.cross(UWs, Ulos)))
+        Ats  = Atn - np.dot(Atn, UWts)*UWts
         if PNAV == PN_APPN:
             # 3.1.1 Version 1 (PN-1) Pure PN equations (3.2)-(3.4).
-            Ws  = Wlos(Vt, Vm, Rlos, Ulos)
-            UWs = Uvec(Ws)
-            UVm = Uvec(Vm)
-            # Atn is normal to UVm.
-            Atn = At - np.dot(At, UVm)*UVm
-            # Ats in plane containing vector UWs x UVm and vector UVm
-            UWts = Uvec(np.cross(UVm, np.cross(UWs, UVm)))
-            Ats  = Atn - np.dot(Atn, UWts)*UWts
-            # Ac is normal to UVm
-            Ac    = N*np.cross(Ws, Vm) + (N/2)*Ats  # eqs (3.2) & (3.8) inertial
+            Atsb = np.matmul(Mbi, Ats)
+            Atsb[0] = 0.0
+            Atsi = np.matmul(Mbi.transpose(), Atsb)
+            # Vector Ac normal to UVm.
+            Ac = N*np.cross(Ws, Vm) + (N/2)*Atsi  # eqs (3.2) & (3.8) inertial
             PN_1b = np.matmul(Mbi, Ac)
             # Eq. (3.4) not required since Ac dot Vm is zero by definition.
             # PN_1b[0] = 0.0  # eq. (3.4)
             np.testing.assert_almost_equal(np.dot(Ac,UVm), 0.0, 6)
             np.testing.assert_almost_equal(PN_1b[0], 0.0, 6)
-            PNGb = PN_1b
+            Acmd = Ac
         else: # PNAV == PN_ATPN
             # 3.1.2 Version 2 (PN-2) True PN equations (3.5)-(3.7).
-            Ws  = Wlos(Vt, Vm, Rlos, Ulos)
-            UWs = Uvec(Ws)
-            Vc  = la.norm(Vclose(Vt, Vm, Ulos))
-            # Atn is normal to Ulos.
-            Atn = At - np.dot(At, Ulos)*Ulos
-            # Ats in plane containing vector UWs x Ulos and vector Ulos
-            UWts = Uvec(np.cross(Ulos, np.cross(UWs, Ulos)))
-            Ats  = Atn - np.dot(Atn, UWts)*UWts
-            # Ac is normal to Ulos
-            Ac    = N*Vc*np.cross(Ws, Ulos) + (N/2)*Ats  # eqs (3.5) & (3.8) inertial
-            Agcp  = applyGCP(Ac, Ulos, Vm)
-            PN_2b = np.matmul(Mbi, Agcp)  # eq. (3.6)
+            Vc = la.norm(Vclose(Vt, Vm, Ulos))
+            # Vector Ac is normal to Ulos.
+            Ac = N*Vc*np.cross(Ws, Ulos) + (N/2)*Ats  # eqs (3.5) & (3.8) inertial.
+            Agcp = applyGCP(Ac, Ulos, Vm)
+            PN_2b = np.matmul(Mbi, Agcp)
             # Eq. (3.7) not required since Agcp dot Vm is zero by definition.
             # PN_2b[0] = 0.0  # eq. (3.7)
-            np.testing.assert_almost_equal(np.dot(Agcp,Uvec(Vm)), 0.0, 6)
+            np.testing.assert_almost_equal(np.dot(Agcp,UVm), 0.0, 6)
             np.testing.assert_almost_equal(PN_2b[0], 0.0, 6)
-            PNGb = PN_2b
-        #
-        # 3.2 Augmented PN (APN) Guidance
-        Acmd = np.matmul(Mbi.transpose(), PNGb) # eq (3.8) inertial
+            Acmd = Agcp
     elif PNAV == PN_AZEM:
         # See derivation of equation (27) on pg 51 in ref [8].
         # NOTE: Time-to-go calculated here assumes non-accelerating target.
