@@ -23,6 +23,7 @@ The repository main directory contains this README file, plain text disclaimer f
 
 + **propNav.py** - Python script for 3-DOF model
 + **RK4_solver.py** - Python script for Runge-Kutta 4th order ODE solver class
++ propNav.ipynb - Jupyter notebook implementation of propNav.py
 
 The main directory also contains Python 3 script files which comprise **pyThreeD**, a Python 3 variant of the X11/C **threeD** program.
 
