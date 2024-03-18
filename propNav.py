@@ -202,7 +202,8 @@ Nt = 3.0  # target turning acceleration (g's)
 
 if MSL == SAM:
     Pt0   = np.array([ 2000.0,    0.0,  500.0])
-    Vt0   = np.array([    0.0,  200.0,    0.0])
+    Vt0   = np.array([    0.0,  200.0,    0.0])  # crossing
+    #Vt0   = np.array([ -200.0,    0.0,    0.0])  # inbound
     Pm0   = np.array([    0.0,    0.0,    2.0])
     magVm = 450.0
 else:
@@ -645,13 +646,15 @@ def Amslc(Rlos, Vt, At, Vm, N):
         # to Ulos, and represents the components of target acceleration At
         # which can contribute to line-of-sight (LOS) rotation rate Ws.
         Atn = At - np.dot(At, Ulos)*Ulos
-        # Vector Ats is the rejection of Atn with vector UWts and is in
-        # the plane containing both vector UWs x Ulos and vector Ulos.
-        UWts = Uvec(np.cross(Ulos, np.cross(UWs, Ulos)))
-        Ats  = Atn - np.dot(Atn, UWts)*UWts
+        # Vector Ats is the rejection of Atn with vector UWs and is in the
+        # plane containing both vector UWs x Ulos and vector Ulos; thus
+        # omitting the component of Atn which could change the direction
+        # of Ws. Not applied; using Atn instead of Ats for APPN and ATPN 
+        # below.
+        Ats = Atn - np.dot(Atn, UWs)*UWs
         if PNAV == PN_APPN:
             # 3.1.1 Version 1 (PN-1) Pure PN equations (3.2)-(3.4).
-            Atsb = np.matmul(Mbi, Ats)
+            Atsb = np.matmul(Mbi, Atn)
             Atsb[0] = 0.0
             Atsi = np.matmul(Mbi.transpose(), Atsb)
             # Vector Ac normal to UVm.
@@ -666,7 +669,7 @@ def Amslc(Rlos, Vt, At, Vm, N):
             # 3.1.2 Version 2 (PN-2) True PN equations (3.5)-(3.7).
             Vc = la.norm(Vclose(Vt, Vm, Ulos))
             # Vector Ac is normal to Ulos.
-            Ac = N*Vc*np.cross(Ws, Ulos) + (N/2)*Ats  # eqs (3.5) & (3.8) inertial.
+            Ac = N*Vc*np.cross(Ws, Ulos) + (N/2)*Atn  # eqs (3.5) & (3.8) inertial.
             Agcp = applyGCP(Ac, Ulos, Vm)
             PN_2b = np.matmul(Mbi, Agcp)
             # Eq. (3.7) not required since Agcp dot Vm is zero by definition.
@@ -1794,9 +1797,9 @@ if __name__ == "__main__":
                         bitrate=-1)
         sbuff = StringIO()
         sbuff.write("%1d%1d%1d%1d" % (int(MSL), int(PNAV), int(Nm), int(Nt)))
-        case = sbuff.getvalue()
+        icase = sbuff.getvalue()
         sbuff.close()
-        filename = './img/propNav_' + case + '.mp4'
+        filename = './img/propNav_' + icase + '.mp4'
         anim.save(filename, writer=writer)
         print("Animation saved in file %s" % filename)
         if PLOT_DATA or PRINT_TXYZ:
@@ -1809,7 +1812,9 @@ if __name__ == "__main__":
         
         # Create and show the plot figures.
         
+        plt.close('all')
         figures = []
+        print("\n")
         
         if PLOT_FIGS[1]:
             ## Figure 1 - Closing distance at tStop.
@@ -2232,7 +2237,7 @@ if __name__ == "__main__":
 
         sbuff = StringIO()
         sbuff.write("%1d%1d%1d%1d" % (int(MSL), int(PNAV), int(Nm), int(Nt)))
-        case = sbuff.getvalue()
+        icase = sbuff.getvalue()
         sbuff.close()
         
         # TXYZ output file record formats.
@@ -2242,7 +2247,7 @@ if __name__ == "__main__":
         
         # Open TXYZ output file and write trajectory data.
         
-        txyz_path = "./out/TXYZ.OUT.{0}".format(case)
+        txyz_path = "./out/TXYZ.OUT.{0}".format(icase)
         
         try:
             
