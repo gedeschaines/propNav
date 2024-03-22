@@ -11,8 +11,10 @@
 # Desc: Application of selectable proportional navigation guidance laws
 #       (True, Pure, ZEM, or Augmented PN) for missile engagement
 #       of a target. 3-DOF point mass kinematic model for missile and
-#       target. Ideal missile control; no lag with 100% effective, but 
-#       bounded commanded acceleration, and perfect command response.
+#       target. Ideal missile seeker and control: no sensor range or,
+#       field-of-view (FOV) limits, no measurement errors, no lag with
+#       100% effective, but bounded commanded acceleration, and perfect
+#       command response.
 #
 # Note: Refactored from a Mathcad 3-DOF kinematic ideal proportional
 #       navigation guidance missile flyout model developed in 1997.
@@ -201,8 +203,9 @@ Nt = 3.0  # target turning acceleration (g's)
 # Define target and missile initial states.
 
 if MSL == SAM:
-    Pt0   = np.array([ 2000.0,    0.0,  500.0])
+    Pt0   = np.array([ 2000.0,    0.0,  500.0])  # 0.0k offset and
     Vt0   = np.array([    0.0,  200.0,    0.0])  # crossing
+    #Pt0   = np.array([ 2000.0,  500.0,  500.0])  # 0.5k offset and
     #Vt0   = np.array([ -200.0,    0.0,    0.0])  # inbound
     Pm0   = np.array([    0.0,    0.0,    2.0])
     magVm = 450.0
@@ -640,7 +643,7 @@ def Amslc(Rlos, Vt, At, Vm, N):
         # See derivation of equation (3.8) in ref [6].
         #
         Ws  = Wlos(Vt, Vm, Rlos, Ulos)
-        UWs = Uvec(Ws)
+        ##UWs = Uvec(Ws)  # Used to calculate Ats below.
         UVm = Uvec(Vm)
         # Vector Atn is the rejection of At with vector Ulos and is normal
         # to Ulos, and represents the components of target acceleration At
@@ -651,7 +654,7 @@ def Amslc(Rlos, Vt, At, Vm, N):
         # omitting the component of Atn which could change the direction
         # of Ws. Not applied; using Atn instead of Ats for APPN and ATPN 
         # below.
-        Ats = Atn - np.dot(Atn, UWs)*UWs
+        ##Ats = Atn - np.dot(Atn, UWs)*UWs
         if PNAV == PN_APPN:
             # 3.1.1 Version 1 (PN-1) Pure PN equations (3.2)-(3.4).
             Atsb = np.matmul(Mbi, Atn)
@@ -2169,8 +2172,8 @@ if __name__ == "__main__":
             
         # Set constant missile spin rate. This is purely a 
         # cosmetic effect to provide rendering realism for
-        # spin stabilized missiles. Spin is not considered
-        # in kinematic equations of motion.
+        # spin stabilized/controlled missiles. Spin is not
+        # considered in kinematic equations of motion.
 
         twopi = 2.0*pi
         fspin = 16.0
