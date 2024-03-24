@@ -11,7 +11,7 @@
 # Desc: Application of selectable proportional navigation guidance laws
 #       (True, Pure, ZEM, or Augmented PN) for missile engagement
 #       of a target. 3-DOF point mass kinematic model for missile and
-#       target. Ideal missile seeker and control: no sensor range or,
+#       target. Ideal missile seeker and control: no sensor range or
 #       field-of-view (FOV) limits, no measurement errors, no lag with
 #       100% effective, but bounded commanded acceleration, and perfect
 #       command response.
@@ -567,7 +567,7 @@ def applyGCP(Ac, Ulos, Vm):
     Am  = Ac - np.dot(Ac, UVm)*UVm
     dot_Ulos_UVm = np.dot(Ulos, UVm)
     if abs(dot_Ulos_UVm) > 0.0:
-        Agcp = ((Am[0] - np.dot(Ac, UVm))/np.dot(Ulos, UVm))*Ulos + Ac
+        Agcp = ((Am[0] - np.dot(Ac, UVm))/dot_Ulos_UVm)*Ulos + Ac
         Acmd = Agcp - np.dot(Agcp, UVm)*UVm  # no thrust control
         """
         try:
