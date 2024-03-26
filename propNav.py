@@ -4,6 +4,8 @@
 # pylint: disable=anomalous-backslash-in-string,bad-continuation
 # pylint: disable=multiple-statements,redefined-outer-name,global-statement
 
+""" File Header Comment Block
+#
 # File: propNav.py
 # Auth: Gary E. Deschaines
 # Date: 25 Oct 2023
@@ -84,6 +86,13 @@
 # Disclaimer:
 #
 # See DISCLAIMER
+#
+"""
+
+
+###
+### Module Imports
+###
 
 import sys
 import time
@@ -110,16 +119,45 @@ try:
 except ImportError:
     print("* Error: RK4_Solver class required.")
     sys.exit()
-
+    
 ###
-### File/Module Scope Constants and Global Variables
+### File/Module Scope Constants and Globals
 ###
 
 RPD = atan(1.0)/45.0  # radians per degree
 DPR = 1.0/RPD         # degrees per radian
 g   = 9.80665         # gravitational acceleration at sea-level (meters/s/s)
 
-# Set processing output control flags.
+# Unit vectors for inertial Cartesian frame X,Y,Z axes.
+
+global Uxi, Uyi, Uzi
+
+Uxi = np.array([1.0, 0.0, 0.0])
+Uyi = np.array([0.0, 1.0, 0.0])
+Uzi = np.array([0.0, 0.0, 1.0])
+
+###
+### Processing Control Options - Output Flags, PN Guidance Type,
+### Missile/Target Engagement Options and Initial States 
+###
+### To best utilize this program from within an IDE such as Spyder, keep
+### all code blocks following this section folded. Edit contents of this
+### section to specify:
+###
+###   + Processing output flags (PRINT_DATA, PLOT_DATA, SHOW_ANIM,
+###     SAVE_ANIM, PRINT_TXYZ) and plot figure flags (PLOT_FIGS)
+###   + Missile type (SAM or AAM)
+###   + Proportional navigation guidance type (True, Pure, ZEM, ATPN,
+###     APPN or AZEM) and navigation constant (Nm)
+###   + Target turning acceleration (Nt)
+###   + Target initial position and velocity (Pt0, Vt0)
+###   + Missile initial position (Pm0), velocity magnitude (magVm),
+###     and launch lead or heading error angles (maz, mel)
+###   + Target rotation direction vector (UWt)
+###   + Integration step size and stop time (T_STEP, T_STOP)
+###
+
+# Set Processing output control flags.
 
 PRINT_DATA = False  # Controls printing of collected data (for debugging)
 PLOT_DATA  = False  # Controls plotting of collected data
@@ -146,6 +184,7 @@ PLOT_FIGS = { 1:True,  # Closing distance at tStop
 for ifig in PLOT_FIGS.keys():
     PLOT_FIGS[ifig] = False
     
+PLOT_FIGS[4] = True
 PLOT_FIGS[5] = True
 PLOT_FIGS[6] = True
 PLOT_FIGS[7] = True
@@ -153,14 +192,6 @@ PLOT_FIGS[8] = True
 PLOT_FIGS[9] = True
 PLOT_FIGS[10] = True
 """
-
-# Unit vectors for inertial Cartesion frame X,Y,Z axes.
-
-global Uxi, Uyi, Uzi
-
-Uxi = np.array([1.0, 0.0, 0.0])
-Uyi = np.array([0.0, 1.0, 0.0])
-Uzi = np.array([0.0, 0.0, 1.0])
 
 # Set missile type and acceleration maximum.
 
@@ -293,9 +324,10 @@ else:
     else:
         # For Section 3, Modules 3 & 4, Section 4, Module 4 of ref [4].
         T_STOP = 13.0
-    
-###
-### Procedures for Proportional Navigation Guidance model
+
+###    
+### Procedures for 3-DOF Kinematic Relative Position, Orientation
+### and Motion in 3D Cartesian Frames
 ###
 
 def Uvec(V):
@@ -415,6 +447,11 @@ def setVm(vmag, az, el):
     Vm = np.array([vx, vy, vz])
     return Vm
 
+###
+### Procedures for 3-DOF Kinematic Proportional Navigation Guidance
+### Laws of Ideal Missile
+###
+
 def Vclose(Vt, Vm, Ulos, collision=False):
     # Note: Closing velocity is defined as -d(Rlos)/dt.
     if collision == True:
@@ -516,6 +553,17 @@ def AZEMn(Rlos, Vtm, At, tgo):
     return ZEMAn
 
 def Wlos(Vt, Vm, Rlos, Ulos):
+    # Calculates line-of-sight (LOS) rotation rate Ws in the direction
+    # of Ulos x (Ws x Ulos) perpendicular to the instantaneous rotation
+    # plane of LOS (IRPL), and represents angular velocity of Rlos (i.e.,
+    # Vrel = W x Rlos) without the component in the direction of Ulos.
+    # 
+    # This could be derived from the slew rate(s) of a missile's seeker
+    # as it follows the target, or as rate of change in target angular
+    # offset within the sensor FOV for a fixed seeker. Naturally, the
+    # contribution of seeker orientation, missile attitude angles and
+    # rotation rates to Ws would need to be accounted for (see ref [3]).
+    #
     # Note: Following expressions for calculating Wlos
     #
     Vnrm = Vrel(Vt, Vm) - Vclose(Vt, Vm, Ulos)
@@ -644,7 +692,7 @@ def Amslc(Rlos, Vt, At, Vm, N):
         #
         Ws  = Wlos(Vt, Vm, Rlos, Ulos)
         ##UWs = Uvec(Ws)  # Used to calculate Ats below.
-        UVm = Uvec(Vm)
+        ##UVm = Uvec(Vm)  # Used in the assert statements below.
         # Vector Atn is the rejection of At with vector Ulos and is normal
         # to Ulos, and represents the components of target acceleration At
         # which can contribute to line-of-sight (LOS) rotation rate Ws.
@@ -662,11 +710,13 @@ def Amslc(Rlos, Vt, At, Vm, N):
             Atsi = np.matmul(Mbi.transpose(), Atsb)
             # Vector Ac normal to UVm.
             Ac = N*np.cross(Ws, Vm) + (N/2)*Atsi  # eqs (3.2) & (3.8) inertial
+            """
             PN_1b = np.matmul(Mbi, Ac)
             # Eq. (3.4) not required since Ac dot Vm is zero by definition.
             # PN_1b[0] = 0.0  # eq. (3.4)
             np.testing.assert_almost_equal(np.dot(Ac,UVm), 0.0, 6)
             np.testing.assert_almost_equal(PN_1b[0], 0.0, 6)
+            """
             Acmd = Ac
         else: # PNAV == PN_ATPN
             # 3.1.2 Version 2 (PN-2) True PN equations (3.5)-(3.7).
@@ -674,11 +724,13 @@ def Amslc(Rlos, Vt, At, Vm, N):
             # Vector Ac is normal to Ulos.
             Ac = N*Vc*np.cross(Ws, Ulos) + (N/2)*Atn  # eqs (3.5) & (3.8) inertial.
             Agcp = applyGCP(Ac, Ulos, Vm)
+            """
             PN_2b = np.matmul(Mbi, Agcp)
             # Eq. (3.7) not required since Agcp dot Vm is zero by definition.
             # PN_2b[0] = 0.0  # eq. (3.7)
             np.testing.assert_almost_equal(np.dot(Agcp,UVm), 0.0, 6)
             np.testing.assert_almost_equal(PN_2b[0], 0.0, 6)
+            """
             Acmd = Agcp
     elif PNAV == PN_AZEM:
         # See derivation of equation (27) on pg 51 in ref [8].
@@ -700,7 +752,7 @@ def Amslc(Rlos, Vt, At, Vm, N):
         Acmd = applyGCP(Ac, Ulos, Vm)
     return Acmd
 
-def Amsla(Amcmd, Ammax):
+def Amsla(Amcmd, Ammax): 
     """
     Applies Ammax bound to given commanded missile acceleration.
 
@@ -720,6 +772,11 @@ def Amsla(Amcmd, Ammax):
     if la.norm(Amcmd) > Ammax:
         return np.dot(Ammax, Uvec(Amcmd))
     return Amcmd
+
+
+###
+### Procedures for 3-DOF Kinematic Equations of Motion of Fixed-Wing Target
+###
 
 def Atgt(UWt, Pt, Vt, n, TgtTheta):
     """
@@ -846,9 +903,9 @@ def bankAngle(At, Vt):
     phi = atan(Atb[1]/g)
     return phi  # Note: phi in radians.
 
-
 ###
-### Procedures for differential equation integration
+### Differential Equations of Motion State Integration Data Structures
+### and Procedures
 ###
 
 # Initial values for state variables array.
@@ -990,12 +1047,15 @@ def delT(S):
     else:
         h = T_STEP/2.0  # first reduction
     return h
-
-   
+ 
 # Differential equations of motion constants.
     
 tStep = T_STEP  # simulation and integration time step (sec)
 tStop = T_STOP  # simulation and integration stop time (sec)
+
+###
+### Data Collection Constants, Storage Arrays and Procedures
+###
 
 # Animation display and data sampling constants.
 
@@ -1182,7 +1242,7 @@ def collectData(i, t, S):
 
 
 ###
-### Procedures for 3D engagement animation
+### 3D Engagement Animation Callback and Plotting Procedures
 ###
 
 def onPress(event):
@@ -1372,7 +1432,8 @@ def anim3D(n):
 
 
 ###
-### Proportional Navigation main routine
+### Processing Main Routine to Run Missile/Target Engagement Case
+### and Display Results
 ###
 
 if __name__ == "__main__":
