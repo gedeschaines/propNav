@@ -89,7 +89,6 @@
 #
 """
 
-
 ###
 ### Module Imports
 ###
@@ -176,7 +175,8 @@ PLOT_FIGS = { 1:True,  # Closing distance at tStop
               9:True,  # Closing velocity vs time of flight
              10:True,  # Zero Effort Miss distance vs time of flight
              11:True,  # Target offset sines wrt missile +x axis
-             12:True,  # 3D missile/target engagement trajectories plot
+             12:True,  # Rotational energy vs time of flight plots
+             13:True,  # 3D missile/target engagement trajectories plot
             }
 
 """
@@ -191,6 +191,7 @@ PLOT_FIGS[7] = True
 PLOT_FIGS[8] = True
 PLOT_FIGS[9] = True
 PLOT_FIGS[10] = True
+PLOT_FIGS[12] = True
 """
 
 # Set missile type and acceleration maximum.
@@ -690,12 +691,13 @@ def Amslc(Rlos, Vt, At, Vm, N):
         """
         # See derivation of equation (3.8) in ref [6].
         #
-        Ws  = Wlos(Vt, Vm, Rlos, Ulos)
+        Ws = Wlos(Vt, Vm, Rlos, Ulos)
         ##UWs = Uvec(Ws)  # Used to calculate Ats below.
         ##UVm = Uvec(Vm)  # Used in the assert statements below.
         # Vector Atn is the rejection of At with vector Ulos and is normal
         # to Ulos, and represents the components of target acceleration At
-        # which can contribute to line-of-sight (LOS) rotation rate Ws.
+        # which can contribute to change in line-of-sight (LOS) rotation
+        # rate Ws (i.e., d(Ws)/dt).
         Atn = At - np.dot(At, Ulos)*Ulos
         # Vector Ats is the rejection of Atn with vector UWs and is in the
         # plane containing both vector UWs x Ulos and vector Ulos; thus
@@ -1526,7 +1528,11 @@ if __name__ == "__main__":
                 SAVE_ANIM = False
     
     if SHOW_ANIM or SAVE_ANIM:
-        fig3D = plt.figure(13, figsize=(6,6), dpi=100)
+        if SAVE_ANIM:
+            figsize = (6,6)
+        else:
+            figsize = (8,8)
+        fig3D = plt.figure(14, figsize=figsize, dpi=100)
         ax3D  = fig3D.add_subplot(111, projection='3d',
                                   autoscale_on=False, animated=False)
         # Instantiate artist for each line/point to be drawn on 3D plot.
@@ -1775,14 +1781,14 @@ if __name__ == "__main__":
         quitflag = False
         doneflag = False
         
-        # Connect Figure 13 key press handler.
+        # Connect Figure 14 key press handler.
         cidkey = fig3D.canvas.mpl_connect('key_press_event', onPress)
         
         print("\nThe 3D engagement animation may be replayed forward and backward")
         print("in time. To reset the animation, press Space bar to unpause, then")
         print("press Up Arrow key to play forward in time. If the animation is")
         print("exited, press Up Arrow key to restart forward in time, or press")
-        print("Esc key to exit Figure 13 and continue on with program processing.")
+        print("Esc key to exit Figure 14 and continue on with program processing.")
         print("During animation the following key presses are recognized:\n")
 
         print("Press Up Arrow key twice to play animation forward in time.")
@@ -1791,7 +1797,7 @@ if __name__ == "__main__":
         print("Press Left Arrow key to step animation one frame backward in time.")
         print("Press Space bar to toggle pause/unpause.")
         print("Press X key to exit animation (press Up Arrow key start replay).")
-        print("Press Esc key to exit Figure 13.")
+        print("Press Esc key to exit Figure 14.")
         
         # Interactive replay loop.
         while not doneflag:
@@ -1818,18 +1824,18 @@ if __name__ == "__main__":
                 iloop += nincr
                 iloop = min(max(0,iloop),istop)
                 
-        # Disconnect Figure 13 key press handler.
+        # Disconnect Figure 14 key press handler.
         fig3D.canvas.mpl_disconnect(cidkey)
         
         # Enable 3D rotation, panning and zooming of final Figure
-        # 13 image displayed.
+        # 14 image displayed.
         ax3D.mouse_init()
         
         if not (PLOT_DATA or SAVE_ANIM):
             if PRINT_TXYZ:
-                print("\nClose Figure 13 to continue program.")
+                print("\nClose Figure 14 to continue program.")
             else:
-                print("\nClose Figure 13 to terminate program.")
+                print("\nClose Figure 14 to terminate program.")
             plt.show(block=True)
     
     if SAVE_ANIM:
@@ -1867,18 +1873,41 @@ if __name__ == "__main__":
         anim.save(filename, writer=writer)
         print("Animation saved in file %s" % filename)
         if PLOT_DATA or PRINT_TXYZ:
-            print("\nAfter animation stops, close Figure 13 to continue program.")
+            print("\nAfter animation stops, close Figure 14 to continue program.")
         else:
-            print("\nAfter animation stops, close Figure 13 to terminate program.")
+            print("\nAfter animation stops, close Figure 14 to terminate program.")
         plt.show()
+        
+    if (PLOT_DATA and PLOT_FIGS[12]) or PRINT_TXYZ:
+        
+        # Extract arrays of target and missile position, velocity
+        # and acceleration vectors from arrays of saved data.
+        
+        Pte = np.array([[Ptx[0:iend]],
+                        [Pty[0:iend]],
+                        [Ptz[0:iend]]]).reshape([1,3,iend])
+        Vte = np.array([[Vtx[0:iend]],
+                        [Vty[0:iend]],
+                        [Vtz[0:iend]]]).reshape([1,3,iend])
+        Ate = np.array([[Atx[0:iend]],
+                        [Aty[0:iend]],
+                        [Atz[0:iend]]]).reshape([1,3,iend])
+        Pme = np.array([[Pmx[0:iend]],
+                        [Pmy[0:iend]],
+                        [Pmz[0:iend]]]).reshape([1,3,iend])
+        Vme = np.array([[Vmx[0:iend]],
+                        [Vmy[0:iend]],
+                        [Vmz[0:iend]]]).reshape([1,3,iend])
+        Ame = np.array([[Amx[0:iend]],
+                        [Amy[0:iend]],
+                        [Amz[0:iend]]]).reshape([1,3,iend])
     
     if PLOT_DATA:
         
         # Create and show the plot figures.
         
-        plt.close('all')
+        ##plt.close('all')
         figures = []
-        print("\n")
         
         if PLOT_FIGS[1]:
             ## Figure 1 - Closing distance at tStop.
@@ -2122,8 +2151,49 @@ if __name__ == "__main__":
                 plt.legend(('Target at To','Target Path','Missed'), loc='upper left')
         
         if PLOT_FIGS[12]:
-            ## Figure 12 - 3D missile/target engagement trajectories plot.
-            figures.append(plt.figure(12, figsize=(8,8), dpi=80))
+            ## Figure 12 - Rotational energy vs time of flight plots.
+            figures.append(plt.figure(12, figsize=(6,6), dpi=80))
+            text = "Rotational Energy vs ToF ({0}, N={1}, At={2})"\
+                .format(PN_LAWS[PNAV], int(Nm), int(Nt))
+            figures[-1].suptitle(text)
+            try:
+                figures[-1].set_tight_layout(True)
+            except:
+                figures[-1].set_layout_engine('tight')
+                
+            # Calculate missile body angular velocity using equation (4.6)
+            # on pg 13 of ref [6].
+            Wmen = np.cross(Vme[0,:,0:istop], Ame[0,:,0:istop], axis=0)
+            Wmed = np.einsum('ij,ij->j', Vme[0,:,0:istop], Vme[0,:,0:istop])
+            Wme  = Wmen[:,0:istop] / Wmed[0:istop,]  # rad/sec
+            
+            # Calculate and plot missile rotational energy.
+            Er = 0.5*np.einsum('ij,ij->j', Wme[:,0:istop], Wme[:,0:istop])
+            ax1 = figures[-1].add_subplot(211)
+            ax1.set_title(None)
+            ax1.set_xlabel('Time-of-Flight (sec)')
+            ax1.set_ylabel('Rotational Energy (Joules/I)')
+            ax1.set_xlim([0.0, ceil(Time[istop]*10.0)/10.0])
+            ax1.set_ylim([0.0, ceil(max(Er[0:istop])*1000.0)/1000.0])
+            ax1.grid()
+            ax1.plot(Time[0:istop], Er[0:istop], '-r')
+            
+            # Calculate and plot missile total rotational energy.
+            TotEr = np.zeros(istop)
+            for i in range(1, istop):
+                TotEr[i] = TotEr[i-1] + Er[i]   
+            ax2 = figures[-1].add_subplot(212)
+            ax2.set_title(" ")
+            ax2.set_xlabel('Time-of-Flight (sec)')
+            ax2.set_ylabel('Total Rotational Energy (Joules/I)')
+            ax2.set_xlim([0.0, ceil(Time[istop]*10.0)/10.0])
+            ax2.set_ylim([0.0, ceil(max(TotEr[0:istop])*100.0)/100.0])
+            ax2.grid()
+            ax2.plot(Time[0:istop], TotEr[0:istop], '-r')
+        
+        if PLOT_FIGS[13]:
+            ## Figure 13 - 3D missile/target engagement trajectories plot.
+            figures.append(plt.figure(13, figsize=(8,8), dpi=80))
             ax = figures[-1].add_subplot(projection='3d')
             text = "3D Plot of missile/target engagement ({0}, N={1}, At={2})"\
                .format(PN_LAWS[PNAV], int(Nm), int(Nt))
@@ -2222,6 +2292,10 @@ if __name__ == "__main__":
         try:
             for fig in figures:
                 move_fig(fig)
+            if PRINT_TXYZ:
+                print("\nUse Q key presses to close each Figure and continue program.")
+            else:
+                print("\nUse Q key presses to close each Figure and terminate program.")
             # Block to keep plots displayed when not running interactively.
             plt.show(block=True)
             plt.close('all')
@@ -2241,28 +2315,6 @@ if __name__ == "__main__":
         pspin = 1.0/fspin
         wspin = fspin*twopi
         
-        # Extract arrays of target and missile position, velocity
-        # and acceleration vectors from arrays of saved data. 
-
-        Pte = np.array([[Ptx[0:iend]],
-                        [Pty[0:iend]],
-                        [Ptz[0:iend]]]).reshape([1,3,iend])
-        Vte = np.array([[Vtx[0:iend]],
-                        [Vty[0:iend]],
-                        [Vtz[0:iend]]]).reshape([1,3,iend])
-        Ate = np.array([[Atx[0:iend]],
-                        [Aty[0:iend]],
-                        [Atz[0:iend]]]).reshape([1,3,iend])
-        Pme = np.array([[Pmx[0:iend]],
-                        [Pmy[0:iend]],
-                        [Pmz[0:iend]]]).reshape([1,3,iend])
-        Vme = np.array([[Vmx[0:iend]],
-                        [Vmy[0:iend]],
-                        [Vmz[0:iend]]]).reshape([1,3,iend])
-        Ame = np.array([[Amx[0:iend]],
-                        [Amy[0:iend]],
-                        [Amz[0:iend]]]).reshape([1,3,iend]) 
-    
         #  Calculate missile and target yaw (PSI), pitch (THT) and
         #  roll (PHI) angles.
         #

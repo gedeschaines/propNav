@@ -11,7 +11,7 @@ A 3-DOF point mass kinematic model of an ideal proportional navigation guidance 
 
 ## Overview ##
 
-The **propNav** program was refactored from a Mathcad variant developed in the mid to late 1990's as a tool to perform rudimentary evaluations of surface to air missile (SAM) engagement capabilities against likely targets. During that time, a high fidelity 6-DOF missile simulation was utilized to perform detailed engineering analysis of candidate SAM performance in specific target engagement scenarios. However, when evaluating performance envelopes for multiple engagement scenarios requiring hundreds of run cases, a 3-DOF was easier to setup, and used much less computing resources and time than the 6-DOF. Of course, there was a known and acceptable loss of accuracy when employing a 3-DOF in this manner.
+The **propNav** program was refactored from a Mathcad variant developed in the mid to late 1990's as a tool to perform rudimentary evaluations of surface to air missile (SAM) engagement capabilities against likely targets. During that time, a high fidelity 6-DOF missile simulation was utilized to perform detailed engineering analysis of candidate SAM performance in specific target engagement scenarios. However, when evaluating performance envelopes for multiple engagement scenarios requiring hundreds of run cases, a 3-DOF was easier to setup, and used much less computing resources and time than the 6-DOF. Of course, there was a known and acceptable loss of realism and accuracy when employing a 3-DOF in this manner.
 
 Also included in this repository are the components of **pyThreeD**, a Python 3 variant of the X11/C **[threeD](https://github.com/gedeschaines/threeD)** program. As with **propNav**, this Python 3 program only requires the NumPy and Matplotlib modules.
 
@@ -37,7 +37,7 @@ The contents of each subdirectory are as follows:
 
 + dat - Polygon data files for threeD ground plane, missile and target faceted shapes.
 + docs - Documentation HTML web pages and media files.
-+ img - Saved Figure 12 and 13 3D plot images from **propNav**  SAM case 1234, animated GIF file created with **threeD** from ./out/TXYZ.OUT.1234 file. 
++ img - Saved Figures 13 and 14 3D plot images from **propNav**  SAM case 1234, animated GIF file created with **threeD** from ./out/TXYZ.OUT.1234 file. 
 + out - TXYZ.OUT trajectory data files written by **propNav** for sample missile/target engagement cases (see "Sample Cases" section below).
 + util - Bash shell scripts and Windows Batch files to convert sequence of PNG images to animated GIF or MP4 video files.
 + Ximg - Images captured during **pyThreeD** execution (**Exists only in local repository workspace**).
@@ -148,41 +148,41 @@ Both **propNav** and **pyThreeD** have been successfully run with platform OS Py
 
 If utilizing **propNav** from a command terminal, then from within the ./propNav directory, invoke **python propNav.py** to execute propNav.py. There are four primary processing option control flags -- SHOW_ANIM, SAVE_ANIM, PLOT_DATA and PRINT_TXYZ; the purpose of each described below.
 
-If the "SHOW_ANIM" flag in the propNav.py file is set to true, then during missile flyout a 3D engagement animation plot depicting motion of the missile along its trajectory and target along its flight path up to the time of intercept, or miss, will be displayed as Matplotlib Figure 13. Upon flyout completion and while Figure 13 is active, the user can interactively replay the animation forward and backward in time using key presses as documented in instructions printed to the terminal when flyout completes. An important feature of the 3D engagement animation is the inclusion of XY plan and XZ profile views for projected locations of missile and target at time-to-go (tgo) assuming constant velocity and heading. An example is shown in the following sequence of saved images of Figure 13 for case 1243 engagement animation at time-of-flight (tof) equal to 0.00, 2.20 and 4.4132 seconds.
+If the "SHOW_ANIM" flag in the propNav.py file is set to true, then during missile flyout a 3D engagement animation plot depicting motion of the missile along its trajectory and target along its flight path up to the time of intercept, or miss, will be displayed as Matplotlib Figure 14. Upon flyout completion and while Figure 14 is active, the user can interactively replay the animation forward and backward in time using key presses as documented in instructions printed to the terminal when flyout completes. An important feature of the 3D engagement animation is the inclusion of XY plan and XZ profile views for projected locations of missile and target at time-to-go (tgo) assuming constant velocity and heading. An example is shown in the following sequence of saved images of Figure 14 for case 1243 engagement animation at time-of-flight (tof) equal to 0.00, 2.20 and 4.4132 seconds.
 
  <p align="center">
-  <img src="./img/Figure_13_1243_0_0000.png" width="600" height="600" alt="Figure 13 for case 1243 engagement animation at tof=0.00 seconds"/><br>
-  Figure 13 for case 1243 engagement animation at tof=0.00 seconds
+  <img src="./img/Figure_14_1243_0_0000.png" width="600" height="600" alt="Figure 14 for case 1243 engagement animation at tof=0.00 seconds"/><br>
+  Figure 14 for case 1243 engagement animation at tof=0.00 seconds
  </p>
 
  <p align="center">
-  <img src="./img/Figure_13_1243_2_2000.png" width="600" height="600" alt="Figure 13 for case 1243 engagement animation at tof=2.20 seconds"/><br>
-  Figure 13 for case 1243 engagement animation at tof=2.20 seconds
+  <img src="./img/Figure_14_1243_2_2000.png" width="600" height="600" alt="Figure 14 for case 1243 engagement animation at tof=2.20 seconds"/><br>
+  Figure 14 for case 1243 engagement animation at tof=2.20 seconds
  </p>
 
  <p align="center">
-  <img src="./img/Figure_13_1243_4_4132.png" width="600" height="600" alt="Figure 13 for case 1243 engagement animation at tof=4.4132 seconds"/><br>
-  Figure 13 for case 1243 engagement animation at tof=4.4132 seconds
+  <img src="./img/Figure_14_1243_4_4132.png" width="600" height="600" alt="Figure 14 for case 1243 engagement animation at tof=4.4132 seconds"/><br>
+  Figure 14 for case 1243 engagement animation at tof=4.4132 seconds
  </p>
 
 At about half way into the final tof of 4.4132 seconds for this case of a SAM against a fixed-wing target performing a constant 3g inward level banked turning maneuver, the missile's projected location at tgo (blue 'x' at terminal end of blue&black dotted line segment) is aligning with the projected location at tgo of the target (red square at terminal end of red&black dotted line segment) with assumed constant velocity and heading as determined by the ideal application of pure proportional navigation guidance with navigation constant of 4.
 
-If the "SAVE_ANIM" flag in the propNav.py file is set to true and **ffmpeg** or **avconv** is available, then the same 3D engagement animation plot described above for "SHOW_ANIM" will be created upon completion of missile flyout, saved to a video file and displayed on the desktop as Matplotlib Figure 13. Unlike for SHOW_ANIM, this displayed 3D engagement animation cannot be replayed. To interact with the 3D engagement animation, the user will be limited to playback speed and frame stepping options available when using media players such as **ffplay** or **VLC** to view the 3D engagement animation plot video file. An MP4 video of engagement animation plots produced by **propNav** for several engagement sample cases may viewed by clicking on its corresponding link in the table presented on this [web page](https://gedeschaines.github.io/propNav).
+If the "SAVE_ANIM" flag in the propNav.py file is set to true and **ffmpeg** or **avconv** is available, then the same 3D engagement animation plot described above for "SHOW_ANIM" will be created upon completion of missile flyout, saved to a video file and displayed on the desktop as Matplotlib Figure 14. Unlike for SHOW_ANIM, this displayed 3D engagement animation cannot be replayed. To interact with the 3D engagement animation, the user will be limited to playback speed and frame stepping options available when using media players such as **ffplay** or **VLC** to view the 3D engagement animation plot video file. An MP4 video of engagement animation plots produced by **propNav** for several engagement sample cases may viewed by clicking on its corresponding link in the table presented on this [web page](https://gedeschaines.github.io/propNav).
 
-If the "PLOT_DATA" flag in the propNav.py file is set to true, then upon completion of the missile flyout, twelve plot figures will be cascaded across the desktop.
+If the "PLOT_DATA" flag in the propNav.py file is set to true, then upon completion of the missile flyout, thirteen plot figures will be cascaded across the desktop.
 
 The first figure is a plot depicting closing distances at time-of-intercept and for three time steps immediately preceding time-of-intercept. The last figure is a 3D plot of missile/target engagement as illustrated in the image below. This desktop displayed plot is interactive and can be rotated to different viewing angles.
 
  <p align="center">
-  <img src="./img/Figure_12_1243.png" width="640" height="640" alt="Figure 12 for engagement saved in TXYZ.OUT.1243"/><br>
-  Figure 12 for engagement saved in TXYZ.OUT.1243
+  <img src="./img/Figure_13_1243.png" width="640" height="640" alt="Figure 13 for engagement saved in TXYZ.OUT.1243"/><br>
+  Figure 13 for engagement saved in TXYZ.OUT.1243
  </p>
 
 If the "PRINT_TXYZ" flag in the propNav.py file is set to true, then a trajectory data file of the name "TXYZ.OUT.####" will be written to the ./out subdirectory. This trajectory data file can be read and rendered by the **pyThreeD** and **threeD** programs. An MP4 video of animated rendering produced by **pyThreeD** and **threeD**  for several **propNav** engagement sample cases may viewed by clicking on its corresponding link in the table presented on this [web page](https://gedeschaines.github.io/propNav).
 
 To utilize **pyThreeD** from a command terminal, invoke **python pyThreeD.py _CaseId \[0|1]_** from within the ./propNav directory to execute pyThreeD.py. The *CaseId* argument corresponds to "####" dot-appended to a TXYZ.OUT filename, and *\[0|1]* option for saving rendered images as PNG files (0=False, 1=True). If using **threeD**, follow steps delineated in the "Execution Overview" section of the associated [README](https://github.com/gedeschaines/threeD#readme) file. The animated GIF displayed in the header of this document was rendered by **threeD**.
 
-Although **propNav** can be run from a command terminal, users may find it easier from within the Spyder IDE application if neither SHOW_ANIM or SAVE_ANIM flags are set to true. Doing so allows code modification prior to program execution, such as changing missile or target initial conditions, or selecting different processing options. Additionally, if a Spyder IDE version 4 or greater is utilized, the twelve plot figures can be "inlined" within the Spyder workspace Plot Pane instead of cascaded across the desktop. Unfortunately "inlined" plots are not interactive. This primarily affects the 3D plot presented in figure 12. Instead of being able to rotate the plot for best viewing angle, the "elev" and "azim" arguments in figure 12's "ax.view_init()" procedure call have to be modified and the program rerun. It's best to click on the "X" (or press Ctrl+Shift+W) with the Plots Pane selected to remove all plots before rerunning propNav.py.
+Although **propNav** can be run from a command terminal, users may find it easier from within the Spyder IDE application if neither SHOW_ANIM or SAVE_ANIM flags are set to true. Doing so allows code modification prior to program execution, such as changing missile or target initial conditions, or selecting different processing options. Additionally, if a Spyder IDE version 4 or greater is utilized, the thirteen plot figures can be "inlined" within the Spyder workspace Plot Pane instead of cascaded across the desktop. Unfortunately "inlined" plots are not interactive. This primarily affects the 3D plot presented in Figure 13. Instead of being able to rotate the plot for best viewing angle, the "elev" and "azim" arguments in Figure 13's "ax.view_init()" procedure call have to be modified and the program rerun. It's best to click on the "X" (or press Ctrl+Shift+W) with the Plots Pane selected to remove all plots before rerunning propNav.py.
 
 To run **pyThreeD** from within the Spyder IDE application, a custom run configuration must be assigned to the pyThreeD.py file in which "Execute in an external system system terminal" is selected and *pyThreeD.py CaseId \[0|1]* is specified for "Command line options" within the "Console" section of the "Run configuration per file" dialog box.
 
@@ -190,7 +190,7 @@ To run **pyThreeD** from within the Spyder IDE application, a custom run configu
 
 The **propNav** program contains hard coded engagement scenarios based on two generic missle types -- surface-to-air (SAM) and air-to-air (AAM). Selecting SAM type engagement scenario enables reproducing the four cases described in the **threeD** program's README  "Caveats" section and embodied in corresponding ./txyz/TXYZ.OUT.000# trajectory files. Selecting AAM type engagement scenario enables reproducing the proportional navigation examples presented in Ben Dickinson's YouTube "Missile Guidance Fundamentals Tutorial" playlist videos for Section 3, Module [3](https://youtu.be/8Dsmh5hLtrE?si=qfXe_PvgNY6vAW7n), Section 3, Module [4](https://youtu.be/Wqakjv92Ygg?si=sIPprhyMh0joiIrS), Section 4, Module [4](https://youtu.be/2SnVShN0Mwo?si=2_lz1s-ItMSNc-qg), and his "Guidance from Optimal Control" playlist video for Section 2, Module [3](https://youtu.be/bEkiwiEUBLM?si=mpOlICOlyoiX07ny).
 
-The provided TXYZ.OUT.124# trajectory files generated by this Python 3-DOF kinematic model of an ideal (no control lag with 100% effective, but bounded commanded acceleration and perfect command response) pure proportional navigation (N=4) guidance missile correspond to the following engagement scenarios for a typical MANPADS type SAM.
+The provided TXYZ.OUT.124# trajectory files generated by this Python 3-DOF kinematic model of an ideal (no seeker sensor range, field-of-view (FOV) limits or measurement errors, no control lag with 100% effective, but bounded commanded acceleration and perfect command response) pure proportional navigation (N=4) guidance missile correspond to the following engagement scenarios for a typical MANPADS type SAM.
 
 + 1240 - Fixed-wing target at constant speed, altitude and heading.
 + 1241 - Fixed-wing target performing constant 1g banking level turn toward its left.
