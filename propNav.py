@@ -2179,9 +2179,7 @@ if __name__ == "__main__":
             ax1.plot(Time[0:istop], Er[0:istop], '-r')
             
             # Calculate and plot missile total rotational energy.
-            TotEr = np.zeros(istop)
-            for i in range(1, istop):
-                TotEr[i] = TotEr[i-1] + Er[i]   
+            TotEr = np.cumsum(Er)
             ax2 = figures[-1].add_subplot(212)
             ax2.set_title(" ")
             ax2.set_xlabel('Time-of-Flight (sec)')
