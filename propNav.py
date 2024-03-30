@@ -148,11 +148,11 @@ Uzi = np.array([0.0, 0.0, 1.0])
 ###   + Missile type (SAM or AAM)
 ###   + Proportional navigation guidance type (True, Pure, ZEM, ATPN,
 ###     APPN or AZEM) and navigation constant (Nm)
-###   + Target turning acceleration (Nt)
+###   + Target turning or weave acceleration (Nt)
 ###   + Target initial position and velocity (Pt0, Vt0)
 ###   + Missile initial position (Pm0), velocity magnitude (magVm),
 ###     and launch lead or heading error angles (maz, mel)
-###   + Target rotation direction vector (UWt)
+###   + Target rotation direction vector or weave rate (UWt, Wt)
 ###   + Integration step size and stop time (T_STEP, T_STOP)
 ###
 
@@ -227,10 +227,11 @@ PN_LAWS = {PN_TRUE:'True', PN_PURE:'Pure', PN_ZEM:'ZEM',
            PN_ATPN:'ATPN', PN_APPN:'APPN', PN_AZEM:'AZEM'}
 PNAV = PN_PURE
 
-global Nm, Nt
+global Nm, Nt, Wt
 
 Nm = 4    # proportional navigation constant
 Nt = 3.0  # target turning acceleration (g's)
+Wt = 0.0  # target weave rate (rad/sec)
     
 # Define target and missile initial states.
 
@@ -242,9 +243,15 @@ if MSL == SAM:
     Pm0   = np.array([    0.0,    0.0,    2.0])
     magVm = 450.0
 else:
-    if ((int(Nt) == 3) and (int(Nm) >= 2)) and \
-       ((PNAV == PN_TRUE) or (PNAV == PN_ATPN) or \
-        (PNAV == PN_APPN) or (PNAV == PN_AZEM)):
+    if Wt > 0.0:
+        # For Section 5, Module 2 of ref [4].
+        Pt0   = np.array([12192.0,   6096.0, 3048.0])
+        Vt0   = np.array([ -304.8, -Nt*g/Wt,    0.0])
+        Pm0   = np.array([    0.0,   6096.0, 3048.0])
+        magVm = 914.4
+    elif ((int(Nt) == 3) and (int(Nm) >= 2)) and \
+         ((PNAV == PN_TRUE) or (PNAV == PN_ATPN) or \
+          (PNAV == PN_APPN) or (PNAV == PN_AZEM)):
         # for Section 2, Module 3 of ref [5].
         Pt0   = np.array([ 9144.0, 6096.0, 3048.0])
         Vt0   = np.array([ -304.8,    0.0,    0.0])
@@ -298,12 +305,15 @@ if MSL == SAM:
     #UWt = np.array([-0.5657,  0.5657, -0.6000])  # steep climbing leftward turn
     #UWt = np.array([-0.5657,  0.5657,  0.6000])  # steep climbing rightward turn
 else:
-    UWt = Uyi  # for climbing turn in XZ plane
-    #UWt = -Uyi  # for diving turn in XZ plane
-    #UWt = np.array([0.5657, 0.6000, 0.5657])  # steep rightward climbing turn
-    #UWt = np.array([0.0000, 0.2500, 0.9682])  # shallow rightward climbing turn
-    #UWt = np.array([0.5657,-0.6000,-0.5657])  # steep leftward diving turn
-    #UWt = np.array([0.0000,-0.2500,-0.9682])  # shallow leftward diving turn
+    if Wt > 0.0:
+        UWt = -Uxi  # for weave maneuver
+    else:
+        UWt = Uyi  # for climbing turn in XZ plane
+        #UWt = -Uyi  # for diving turn in XZ plane
+        #UWt = np.array([0.5657, 0.6000, 0.5657])  # steep rightward climbing turn
+        #UWt = np.array([0.0000, 0.2500, 0.9682])  # shallow rightward climbing turn
+        #UWt = np.array([0.5657,-0.6000,-0.5657])  # steep leftward diving turn
+        #UWt = np.array([0.0000,-0.2500,-0.9682])  # shallow leftward diving turn
 
 UWt = UWt/la.norm(UWt)
 
@@ -322,6 +332,9 @@ else:
         ((PNAV == PN_ATPN) or (PNAV == PN_APPN) or (PNAV == PN_AZEM)):
         # For Section 1.1 of ref [9].
         T_STOP = 13.5
+    elif (MSL == AAM) and (Wt > 0.0):
+        # For Section 5, Module 2 of ref [4].
+        T_STOP = 11.0
     else:
         # For Section 3, Modules 3 & 4, Section 4, Module 4 of ref [4].
         T_STOP = 13.0
@@ -598,19 +611,19 @@ def applyGCP(Ac, Ulos, Vm):
     
     Parameters
     ----------
-
+    
     Ac : float 3-vector
         Commanded missile guidance acceleration (inertial).
     Ulos : float 3-vector
         Unit vector along LOS from missile to target (inertial).    
     Vm : float 3-vector
         Velocity (inertial) of missile.
-
+    
     Returns
     -------
     Acmd : float 3-Vector
         Acceleration commanded.
-        
+    
     """
     UVm = Uvec(Vm)
     Am  = Ac - np.dot(Ac, UVm)*UVm
@@ -645,7 +658,7 @@ def Amslc(Rlos, Vt, At, Vm, N):
         Proportional Navigation law selected identifier
     RPD : float constant
         Radians per degree
-        
+    
     Parameters
     ----------
     Rlos : float 3-vector
@@ -658,14 +671,13 @@ def Amslc(Rlos, Vt, At, Vm, N):
         Velocity (inertial) of missile.
     N : float
         Proportional navigation constant (or gain).
-
+    
     Returns
     -------
     Acmd : float 3-Vector
         Acceleration commanded.
-        
+    
     """
-    global g, Nt, UWt
     Ulos = Uvec(Rlos)
     Vtm  = Vrel(Vt, Vm)
     if PNAV == PN_APPN or PNAV == PN_ATPN:
@@ -757,19 +769,19 @@ def Amslc(Rlos, Vt, At, Vm, N):
 def Amsla(Amcmd, Ammax): 
     """
     Applies Ammax bound to given commanded missile acceleration.
-
+    
     Parameters
     ----------
     Amcmd : float 3-vector
         Missile inertial linear acceleration commanded.
     Ammax : float constant
         Maximum missile linear acceleration.
-
+    
     Returns
     -------
     float 3-Vector
         Missile inertial acceleration achieved (actual).
-
+    
     """
     if la.norm(Amcmd) > Ammax:
         return np.dot(Ammax, Uvec(Amcmd))
@@ -780,7 +792,7 @@ def Amsla(Amcmd, Ammax):
 ### Procedures for 3-DOF Kinematic Equations of Motion of Fixed-Wing Target
 ###
 
-def Atgt(UWt, Pt, Vt, n, TgtTheta):
+def Atgt(t, UWt, Pt, Vt, n, TgtTheta):
     """
     This routine calculates target inertial linear acceleration
     and pitch rate for given inertial angular velocity direction
@@ -790,14 +802,20 @@ def Atgt(UWt, Pt, Vt, n, TgtTheta):
     Globals
     -------
     g : float (read only)
-        gravitional acceleration magnitude
+        gravitional acceleration magnitude (meters/sec/sec)
     DPR: float (read only)
         degrees per radian
     RPD: float (read only)
         radians per degree
-        
+    MSL: integer (read only)
+        Missile type code
+    Wt: float (read only)
+        Target weave angular velocity in UWt direction (rad/sec)
+    
     Parameters
     ----------
+    t : float
+        Time (sec)
     UWt : float 3-vector
         Target angular velocity direction unit vector (i.e.,
         direction frame rotation axis points in inertial space).
@@ -810,16 +828,22 @@ def Atgt(UWt, Pt, Vt, n, TgtTheta):
         in g's.
     TgtTheta : float
         Target pitch angle in radians.
-
+    
     Returns
     -------
     At : float 3-vector
         Target inertial acceleration.
     TgtThetaDot : float
         Target pitch angle rotation rate in radians/sec.
-        
+    
     """
+    global Wt
+    
     if n != 0.0:
+        if MSL == AAM and Wt > 0.0:
+            # Weave maneuver
+            At = np.array([0.0, n*g*sin(Wt*t), n*g*cos(Wt*t)])
+            return At, 0.0
         magVt = la.norm(Vt)
         # Calculate target az and el in degrees.
         taz, tel = az_el_of_V(Vt)
@@ -989,9 +1013,9 @@ def dotS2(dS, At, Vt, Amcmd, Vm, TgtThetaDot):
     dS = setSdot(dS, At, Vt, Amsla(Amcmd, Ammax), Vm, TgtThetaDot)
     return dS
 
-def dotS1(dS, Pt, Ptm, Vt, Vm, TgtTheta):
+def dotS1(dS, t, Pt, Ptm, Vt, Vm, TgtTheta):
     global UWt, Nt, Nm
-    At, TgtThetaDot = Atgt(UWt, Pt, Vt, Nt, TgtTheta)
+    At, TgtThetaDot = Atgt(t, UWt, Pt, Vt, Nt, TgtTheta)
     dS = dotS2(dS, At, Vt, Amslc(Ptm, Vt, At, Vm, Nm), Vm, TgtThetaDot)
     return dS
 
@@ -1017,7 +1041,7 @@ def dotS(n, S):
     
     Vt, Pt, Vm, Pm, TgtTheta = getS(S)
 
-    dS = dotS1(dS, Pt, Prel(Pt,Pm), Vt, Vm, TgtTheta)
+    dS = dotS1(dS, S[0], Pt, Prel(Pt,Pm), Vt, Vm, TgtTheta)
     
     return dS
 
@@ -1881,7 +1905,7 @@ if __name__ == "__main__":
     if (PLOT_DATA and PLOT_FIGS[12]) or PRINT_TXYZ:
         
         # Extract arrays of target and missile position, velocity
-        # and acceleration vectors from arrays of saved data.
+        # and acceleration vectors from arrays of collected data.
         
         Pte = np.array([[Ptx[0:iend]],
                         [Pty[0:iend]],
@@ -2313,14 +2337,14 @@ if __name__ == "__main__":
         pspin = 1.0/fspin
         wspin = fspin*twopi
         
-        #  Calculate missile and target yaw (PSI), pitch (THT) and
-        #  roll (PHI) angles.
+        # Calculate missile and target yaw (PSI), pitch (THT) and
+        # roll (PHI) angles.
         #
-        #  Note: Vectorized atan2 expression from pitchAngle()
-        #        routine used for calculating THTm and THTt.
-        #        These equations do not account for instances
-        #        where the missile or target have pitched past
-        #        +/- 90 degrees.
+        # Note: Vectorized atan2 expression from pitchAngle()
+        #       routine used for calculating THTm and THTt.
+        #       These equations do not account for instances
+        #       where the missile or target have pitched past
+        #       +/- 90 degrees.
         
         UVm   = Uvec(Vme[:,0:iend])
         PSImd = np.arctan2(-UVm[0,1,0:iend], UVm[0,0,0:iend],)*DPR
