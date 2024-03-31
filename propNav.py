@@ -323,18 +323,18 @@ T_STEP = 0.005
 if MSL == SAM:
     T_STOP = 8.0
 else:
-    if ((int(Nt) == 3) and (int(Nm) >= 2)) and \
-        ((PNAV == PN_TRUE) or (PNAV == PN_ATPN) or \
-         (PNAV == PN_APPN) or (PNAV == PN_AZEM)):
+    if Wt > 0.0:
+        # For Section 5, Module 2 of ref [4].
+        T_STOP = 11.0
+    elif ((int(Nt) == 3) and (int(Nm) >= 2)) and \
+         ((PNAV == PN_TRUE) or (PNAV == PN_ATPN) or \
+          (PNAV == PN_APPN) or (PNAV == PN_AZEM)):
         # For Section 2, Module 3 of ref [5].
         T_STOP = 15.5
     elif (int(Nt) == 6) and \
         ((PNAV == PN_ATPN) or (PNAV == PN_APPN) or (PNAV == PN_AZEM)):
         # For Section 1.1 of ref [9].
         T_STOP = 13.5
-    elif (MSL == AAM) and (Wt > 0.0):
-        # For Section 5, Module 2 of ref [4].
-        T_STOP = 11.0
     else:
         # For Section 3, Modules 3 & 4, Section 4, Module 4 of ref [4].
         T_STOP = 13.0
