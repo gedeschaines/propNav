@@ -184,7 +184,7 @@ To utilize **pyThreeD** from a command terminal, invoke **python pyThreeD.py _Ca
 
 Although **propNav** can be run from a command terminal, users may find it easier from within the Spyder IDE application if neither SHOW_ANIM or SAVE_ANIM flags are set to true. Doing so allows code modification prior to program execution, such as changing missile or target initial conditions, or selecting different processing options. Additionally, if a Spyder IDE version 4 or greater is utilized, the thirteen plot figures can be "inlined" within the Spyder workspace Plot Pane instead of cascaded across the desktop. Unfortunately "inlined" plots are not interactive. This primarily affects the 3D plot presented in Figure 13. Instead of being able to rotate the plot for best viewing angle, the "elev" and "azim" arguments in Figure 13's "ax.view_init()" procedure call have to be modified and the program rerun. It's best to click on the "X" (or press Ctrl+Shift+W) with the Plots Pane selected to remove all plots before rerunning propNav.py.
 
-To run **pyThreeD** from within the Spyder IDE application, a custom run configuration must be assigned to the pyThreeD.py file in which "Execute in an external system system terminal" is selected and *pyThreeD.py CaseId \[0|1]* is specified for "Command line options" within the "Console" section of the "Run configuration per file" dialog box.
+To run **pyThreeD** from within the Spyder IDE application, a custom run configuration must be assigned to the pyThreeD.py file in which "Execute in an external system terminal" is selected and *pyThreeD.py CaseId \[0|1]* is specified for "Command line options" within the "Console" section of the "Run configuration per file" dialog box.
 
 ## Sample Cases ##
 
