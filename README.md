@@ -30,8 +30,8 @@ The main directory also contains Python 3 script files which comprise **pyThreeD
 + pyThreeD.py - Python script for **pyThreeD** main routine refactored from [threeD.c](https://github.com/gedeschaines/threeD/blob/master/src/threeD.c) source file
 + pyThreeD.ipynb - Jupyter notebook implementation of pyThreeD.py
 + draw3D.py - Faceted shape 3D rendering routines refactored from [draw3D.c](https://github.com/gedeschaines/threeD/blob/master/src/draw3D.c) source file
-+ pqueLib.py - Priority queue routines refactored from [pqueLib.c](https://github.com/gedeschaines/threeD/blob/master/src/pqueLib.c) source file
-+ clipLib.py - Polygon clipping routines refactored from [clipLib.c](https://github.com/gedeschaines/threeD/blob/master/src/clipLib.c) source file
++ pquelib.py - Priority queue routines refactored from [pquelib.c](https://github.com/gedeschaines/threeD/blob/master/src/pquelib.c) source file
++ cliplib.py - Polygon clipping routines refactored from [cliplib.c](https://github.com/gedeschaines/threeD/blob/master/src/cliplib.c) source file
 
 The contents of each subdirectory are as follows:
 
