@@ -23,9 +23,9 @@ NOTE:  Cartesian coordinate frames for world space, field-of-view
                     +X                            +x
           [0,0,0]   /                   [0,0,0]   /  [-W*AR/2,+W*AR/2]
              |     /                       |     /           |
-             \--> + ----- +Y               \--> + ----- +y <-|
+             \--> + ----- +Y               \--> + ----- +y <-/
                   |                             |
-                  |                             |   [-H/2,H/2]
+                  |                             |   [-H/2,+H/2]
                  +Z                            +z <-----/
   
              World Space                    FOV Viewport
@@ -40,6 +40,9 @@ NOTE:  Cartesian coordinate frames for world space, field-of-view
   
              Clipping Pyramid               Drawable Pixmap
 
+        The x coordinate of points in the FOV viewport are not normalized
+        between the FOV frustum near and far planes as in OpenGL or other
+        graphics libraries.
 
 Disclaimer:  See DISCLAIMER file.
 
@@ -131,7 +134,6 @@ fOne  = 1.0
 fTwo  = 2.0
 f1K   = 1000.0
 rpd   = atan(1.0)/45.0  # radians per degree
-rpd   = 0.01745329
 dpr   = 1.0/rpd         # degrees per radian
 
 White  = 0
@@ -275,7 +277,7 @@ class Draw3D:
         
         self.fl      = (self.fovs/fTwo)/tanfv
         self.flmin   = 0.1*self.fl
-        self.sfacx   = fOne/tanfv
+        self.sfacx   = fOne  # Not Used
         self.sfacy   = fOne/tanfv
         self.sfacyAR = self.sfacy/self.ratio
         self.sfacz   = fOne/tanfv
