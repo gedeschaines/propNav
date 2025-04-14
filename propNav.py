@@ -580,14 +580,14 @@ def Wlos(Vt, Vm, Rlos, Ulos):
     #
     # Note: Following expressions for calculating Wlos
     #
-    Vnrm = Vrel(Vt, Vm) - Vclose(Vt, Vm, Ulos)
-    Wlos = np.cross(-Vnrm, Ulos)/la.norm(Rlos)
+    Vnrm = Vrel(Vt, Vm) + Vclose(Vt, Vm, Ulos)  # Vrel component normal to -Vclose
+    Wlos = np.cross(-Vnrm, Ulos)/la.norm(Rlos)  # Wlos is normal to Ulos and Vnrm
     #
     # is equivalent to:
     #
-    #   Wlos = np.cross(Rlos, Vtm)/np.dot(Rlos, Rlos)
+    #   Wlos = np.cross(Rlos, Vrel(Vt, Vm))/np.dot(Rlos, Rlos)
     """
-    Wlos2 = np.cross(Rlos, Vrel(Vt,Vm))/np.dot(Rlos, Rlos)
+    Wlos2 = np.cross(Rlos, Vrel(Vt, Vm))/np.dot(Rlos, Rlos)
     try:
         np.testing.assert_almost_equal(Wlos2, Wlos, 6)
     except:
@@ -2333,8 +2333,10 @@ if __name__ == "__main__":
         # considered in kinematic equations of motion.
 
         twopi = 2.0*pi
-        fspin = 16.0
-        pspin = 1.0/fspin
+        if MSL == SAM:
+            fspin = 16.0
+        else:
+            fspin = 0.0
         wspin = fspin*twopi
         
         # Calculate missile and target yaw (PSI), pitch (THT) and
