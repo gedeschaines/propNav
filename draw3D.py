@@ -110,14 +110,19 @@ class PolRec:
         self.Pt2 = pt2
         
 class Pol3D:
-    def __init__(self, k, flg=False, pri=0, typ=0, cnt0=Pnt3D(), cnt1=Pnt3D(), pat=0):
+    def __init__(self, k, flg=False, pri=0, typ=0, vis=0, pat=0, \
+                 cnt0=Pnt3D(), cnt1=Pnt3D(), nrm0=Pnt3D(), nrm1=Pnt3D()):
         self.Id   = k
         self.Flg  = flg
         self.Pri  = pri
         self.Typ  = typ
+        self.Vis  = vis
+        self.Pat  = pat
         self.Cnt0 = cnt0
         self.Cnt1 = cnt1
-        self.Pat  = pat
+        self.Nrm0 = nrm0
+        self.Nrm1 = nrm1
+
         self.Recs = []
         self.Poly = None
 
@@ -289,7 +294,7 @@ class Draw3D:
                   (self.sfacx, self.sfacy, self.sfacyAR, self.sfacz))
    
 
-    def MakePol(self, pntcnt, thePri, theTyp, thePat, offset):
+    def MakePol(self, pntcnt, thePri, theTyp, theVis, thePat, offset):
         """
         Makes list of polygon data records from array of polygon data.
         """
@@ -307,6 +312,7 @@ class Draw3D:
         self.pollist[self.polcnt].Pri = thePri*100000000
         self.pollist[self.polcnt].Pat = thePat
         self.pollist[self.polcnt].Typ = theTyp
+        self.pollist[self.polcnt].Vis = theVis
 
         # Initialize first polygon point record.
 
@@ -372,6 +378,7 @@ class Draw3D:
         self.pollist[self.polcnt].Cnt1 = Pnt3D(x=sumX/sumP,
                                                y=sumY/sumP,
                                                z=sumZ/sumP)
+        
         if DBG_LVL > 2:
             print("MakePol:  centroid 0 =  %f  %f  %f" % \
                   (self.pollist[self.polcnt].Cnt0.X,
@@ -382,7 +389,38 @@ class Draw3D:
                    self.pollist[self.polcnt].Cnt1.Y,
                    self.pollist[self.polcnt].Cnt1.Z))
 
-
+        # Calculate polygon normal assuming traversal from point 0 
+        # to point 1 is in a counterclockwise direction.
+        
+        V0x = self.pollist[self.polcnt].Recs[0].Pt0.X - self.pollist[self.polcnt].Cnt0.X
+        V0y = self.pollist[self.polcnt].Recs[0].Pt0.Y - self.pollist[self.polcnt].Cnt0.Y
+        V0z = self.pollist[self.polcnt].Recs[0].Pt0.Z - self.pollist[self.polcnt].Cnt0.Z
+        V1x = self.pollist[self.polcnt].Recs[1].Pt0.X - self.pollist[self.polcnt].Cnt0.X
+        V1y = self.pollist[self.polcnt].Recs[1].Pt0.Y - self.pollist[self.polcnt].Cnt0.Y
+        V1z = self.pollist[self.polcnt].Recs[1].Pt0.Z - self.pollist[self.polcnt].Cnt0.Z
+        
+        V0  = np.array([V0x, V0y, V0z])
+        V1  = np.array([V1x, V1y, V1z])
+        V01 = np.cross(V0, V1)
+        nrm = V01 / np.linalg.norm(V01)
+        
+        self.pollist[self.polcnt].Nrm0 = Pnt3D(x=nrm[0],
+                                               y=nrm[1],
+                                               z=nrm[2])
+        self.pollist[self.polcnt].Nrm1 = Pnt3D(x=nrm[0],
+                                               y=nrm[1],
+                                               z=nrm[2])
+        
+        if DBG_LVL > 2:
+            print("MakePol:  normal 0 =  %f  %f  %f" % \
+                  (self.pollist[self.polcnt].Nrm0.X,
+                   self.pollist[self.polcnt].Nrm0.Y,
+                   self.pollist[self.polcnt].Nrm0.Z))
+            print("MakePol:  normal 1 =  %f  %f  %f" % \
+                  (self.pollist[self.polcnt].Nrm1.X,
+                   self.pollist[self.polcnt].Nrm1.Y,
+                   self.pollist[self.polcnt].Nrm1.Z))
+                
     def MakeMatrix(self, p, t, r): 
         """
         Computes world space to view space rotation transformation
@@ -484,6 +522,29 @@ class Draw3D:
         if DBG_LVL > 3:
             print("XfrmPoly:  Polygon # %d" % (iPol))
         
+        # Compute eye vector to polygon centroid in viewport frame.
+        
+        eye1x = self.pollist[iPol].Cnt1.X - self.fovpt.X
+        eye1y = self.pollist[iPol].Cnt1.Y - self.fovpt.Y
+        eye1z = self.pollist[iPol].Cnt1.Z - self.fovpt.Z
+        eye2x = self.dcx1*eye1x + self.dcy1*eye1y + self.dcz1*eye1z
+        eye2y = self.dcx2*eye1x + self.dcy2*eye1y + self.dcz2*eye1z
+        eye2z = self.dcx3*eye1x + self.dcy3*eye1y + self.dcz3*eye1z
+        
+        # Check if polygon surface is visible.
+        
+        if self.pollist[iPol].Vis > 1:
+            nrm1  = self.pollist[iPol].Nrm1
+            nrm2x = self.dcx1*nrm1.X + self.dcy1*nrm1.Y + self.dcz1*nrm1.Z
+            nrm2y = self.dcx2*nrm1.X + self.dcy2*nrm1.Y + self.dcz2*nrm1.Z
+            nrm2z = self.dcx3*nrm1.X + self.dcy3*nrm1.Y + self.dcz3*nrm1.Z
+            dotp  = nrm2x*eye2x + nrm2y*eye2y + nrm2z*eye2z
+            if dotp > 0.0:
+                self.pollist[iPol].Flg = False
+                return
+            
+        # Compute screen coordinates for polygon vertice.  
+        
         inflag = False
         pcode  = self.pollist[iPol].Pri
         
@@ -518,25 +579,22 @@ class Draw3D:
             # Check if point is in front of view point.
             if xs >= fZero:
                 inflag = True
-
+                
+        # Enque polygon if at least one vertice is in the viewport.
+        
         if inflag and ( not self.polPQ.isFull() ):
-            xd    = self.pollist[iPol].Cnt1.X - self.fovpt.X
-            yd    = self.pollist[iPol].Cnt1.Y - self.fovpt.Y
-            zd    = self.pollist[iPol].Cnt1.Z - self.fovpt.Z
-            xs    = self.dcx1*xd + self.dcy1*yd + self.dcz1*zd
-            ys    = self.dcx2*xd + self.dcy2*yd + self.dcz2*zd
-            zs    = self.dcx3*xd + self.dcy3*yd + self.dcz3*zd
-            rs    = sqrt(xs*xs + ys*ys + zs*zs)
+            rs    = sqrt(eye2x*eye2x + eye2y*eye2y + eye2z*eye2z)
             rsmm  = rs*f1K
             irsmm = lroundd(rsmm)
             anElement = HeapElement(pcode + irsmm, iPol)
             if DBG_LVL > 3:
-                print("    - element:  %ld  %hd  %hd  %ld  %f  %f  %f  %f  %ld" % \
+                print("    - element:  %ld  %hd  %hd  %hd  %ld  %f  %f  %f  %f  %ld" % \
                       (anElement.key,
                              anElement.info,
                                  self.pollist[iPol].Typ,
-                                      self.pollist[iPol].Pri,
-                                           xs, ys, zs, rsmm, irsmm))
+                                      self.pollist[iPol].Vis,
+                                          self.pollist[iPol].Pri,
+                                               eye2x, eye2y, eye2z, rsmm, irsmm))
             self.polPQ.priorityEnq(deepcopy(anElement))
             if irsmm < 0:
                 print("*** XfrmPoly:  lroundd(rsmm) < 0 for iPol=%hd" % (iPol))
@@ -580,6 +638,25 @@ class Draw3D:
                                                 aPolRec.Pt1.Z))          
             self.pollist[iPol].Recs[ipnt] = deepcopy(aPolRec)
             
+        # Compute moved polygon normal assuming traversal from point 0 
+        # to point 1 is in a counterclockwise direction.
+        
+        V0x = self.pollist[iPol].Recs[0].Pt1.X - self.pollist[iPol].Cnt1.X
+        V0y = self.pollist[iPol].Recs[0].Pt1.Y - self.pollist[iPol].Cnt1.Y
+        V0z = self.pollist[iPol].Recs[0].Pt1.Z - self.pollist[iPol].Cnt1.Z
+        V1x = self.pollist[iPol].Recs[1].Pt1.X - self.pollist[iPol].Cnt1.X
+        V1y = self.pollist[iPol].Recs[1].Pt1.Y - self.pollist[iPol].Cnt1.Y
+        V1z = self.pollist[iPol].Recs[1].Pt1.Z - self.pollist[iPol].Cnt1.Z
+        
+        V0  = np.array([V0x, V0y, V0z])
+        V1  = np.array([V1x, V1y, V1z])
+        V01 = np.cross(V0, V1)
+        nrm = V01 / np.linalg.norm(V01)
+        
+        self.pollist[iPol].Nrm1.X = nrm[0]
+        self.pollist[iPol].Nrm1.Y = nrm[1]
+        self.pollist[iPol].Nrm1.Z = nrm[2]
+
 
     def DrawGrid3D(self, iaxis):
         """
@@ -782,7 +859,7 @@ class Draw3D:
                 xy[i-1,1] = lroundd(sf*zs) + floor(self.fovcy)
             
             self.zorder += fOne
-            if self.pollist[iPol].Typ >= 0:
+            if self.pollist[iPol].Vis > 0:
                 # Filled polygon.
                 if self.pollist[iPol].Poly is None:
                     # Instantiate Patch Polygon which will be redrawn.
@@ -862,20 +939,21 @@ class Draw3D:
             
             # Load polygon specification record.
             words = line.strip().split()
-            if len(words) >= 6:
+            if len(words) >= 7:
                 polpnt = int(words[0])
                 polpri = int(words[1])
                 polcol = int(words[2])
                 poltyp = int(words[3])
-                polsfc = float(words[4])
-                for i in range(0,len(words)-5):
+                polvis = int(words[4])
+                polsfc = float(words[5])
+                for i in range(0,len(words)-6):
                     if i == 0:
-                        polnam = words[5+i]
+                        polnam = words[6+i]
                     else:
-                        polnam = polnam + " " + words[5+i]
+                        polnam = polnam + " " + words[6+i]
                 if DBG_LVL > 1:
-                    print("LoadPoly:  Loaded specs -  %d  %d  %d  %d  %f  %s" % \
-                          (polpnt, polpri, polcol, poltyp, polsfc, polnam))
+                    print("LoadPoly:  Loaded specs -  %d  %d  %d  %d  %d %f  %s" % \
+                          (polpnt, polpri, polcol, poltyp, polvis, polsfc, polnam))
 
                 # Load vertex points.
                 for i in range(1, polpnt+1):
@@ -915,9 +993,9 @@ class Draw3D:
                               (offset.X, offset.Y, offset.Z))
 
                 if ( (polcol >= 0) and (polcol < 8) ):
-                    self.MakePol(polpnt, polpri, poltyp, Colors[polcol], deepcopy(offset))
+                    self.MakePol(polpnt, polpri, poltyp, polvis, Colors[polcol], deepcopy(offset))
                 else:
-                    self.MakePol(polpnt, polpri, poltyp, Colors[Black], deepcopy(offset))
+                    self.MakePol(polpnt, polpri, poltyp, polvis, Colors[Black], deepcopy(offset))
 
             line = lfni.readline()
     
@@ -948,7 +1026,10 @@ class Draw3D:
             self.LoadPoly(lfni, "./dat/fwngpoly.dat")
             lfni.close()
         
-        lfni = open("./dat/mislpoly.dat", "rt")
+        if self.mslType == 1:
+            lfni = open("./dat/mislpoly1.dat", "rt")
+        else:
+            lfni = open("./dat/mislpoly2.dat", "rt")
         if lfni is not None:
             if DBG_LVL > 0:
                 print("Draw3D:  Loading polygons from file %s" % \
@@ -1165,7 +1246,7 @@ class Draw3D:
             if DBG_LVL > 2:
                 print("MainLoop:  Move target polygons...")
             for i in range(1,self.polcnt+1):
-                if (abs(self.pollist[i].Typ) == self.poltyp_tgt):
+                if self.pollist[i].Typ == self.poltyp_tgt:
                     self.MovePoly(i, px, py, pz)
            
             # Get missile position components.
@@ -1197,7 +1278,7 @@ class Draw3D:
             if DBG_LVL > 2:
                 print("MainLoop:  Move missile polygons...")
             for i in range(1,self.polcnt+1):
-                if ( abs(self.pollist[i].Typ) == self.poltyp_msl ):
+                if self.pollist[i].Typ == self.poltyp_msl:
                     self.MovePoly(i, px, py, pz)
             
             # Calculate unit vector from missile to target.
@@ -1288,7 +1369,8 @@ class Draw3D:
             # Draw ground plane polygon.
             if DBG_LVL > 2:
                 print("MainLoop:  Draw ground plane polygon...")
-            self.DrawPoly3D(1)
+            if self.pollist[1].Flg:
+                self.DrawPoly3D(1)
             
             # Draw ground plane grid.
             if DBG_LVL > 2:
@@ -1302,10 +1384,11 @@ class Draw3D:
             while not self.polPQ.isEmpty():
                 anElement = self.polPQ.priorityDeq()
                 if DBG_LVL > 3:
-                    print("  %ld  %hd  %hd  %ld" % \
+                    print("  %ld  %hd  %hd  %hd  %ld" % \
                           (anElement.key,
                            anElement.info,
                            self.pollist[anElement.info].Typ,
+                           self.pollist[anElement.info].Vis,                           
                            self.pollist[anElement.info].Pri))
                 self.DrawPoly3D(anElement.info)
             
