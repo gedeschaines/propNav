@@ -1102,11 +1102,11 @@ class Draw3D:
         elif event.key == '0':
             self.waitmsec = 0
         elif event.key == 'right':
-            self.waitmsec -= 50
+            self.waitmsec -= 10  
             self.waitmsec = lmax(0, self.waitmsec)
         elif event.key == 'left':
-            self.waitmsec += 50
-            self.waitmsec = lmin(500, self.waitmsec)
+            self.waitmsec += 10
+            self.waitmsec = lmin(200, self.waitmsec)
         elif event.key == ' ':
             self.paused = not self.paused
         elif event.key == 'x':
