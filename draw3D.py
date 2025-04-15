@@ -533,12 +533,12 @@ class Draw3D:
         
         # Check if polygon surface is visible.
         
-        if self.pollist[iPol].Vis > 1:
+        if self.pollist[iPol].Vis == 2:
             nrm1  = self.pollist[iPol].Nrm1
             nrm2x = self.dcx1*nrm1.X + self.dcy1*nrm1.Y + self.dcz1*nrm1.Z
             nrm2y = self.dcx2*nrm1.X + self.dcy2*nrm1.Y + self.dcz2*nrm1.Z
             nrm2z = self.dcx3*nrm1.X + self.dcy3*nrm1.Y + self.dcz3*nrm1.Z
-            dotp  = nrm2x*eye2x + nrm2y*eye2y + nrm2z*eye2z
+            dotp  = nrm2x*self.dcx1 + nrm2y*self.dcx2 + nrm2z*self.dcx3
             if dotp > 0.0:
                 self.pollist[iPol].Flg = False
                 return
