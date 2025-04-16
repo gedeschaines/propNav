@@ -522,15 +522,6 @@ class Draw3D:
         if DBG_LVL > 3:
             print("XfrmPoly:  Polygon # %d" % (iPol))
         
-        # Compute eye vector to polygon centroid in viewport frame.
-        
-        eye1x = self.pollist[iPol].Cnt1.X - self.fovpt.X
-        eye1y = self.pollist[iPol].Cnt1.Y - self.fovpt.Y
-        eye1z = self.pollist[iPol].Cnt1.Z - self.fovpt.Z
-        eye2x = self.dcx1*eye1x + self.dcy1*eye1y + self.dcz1*eye1z
-        eye2y = self.dcx2*eye1x + self.dcy2*eye1y + self.dcz2*eye1z
-        eye2z = self.dcx3*eye1x + self.dcy3*eye1y + self.dcz3*eye1z
-        
         # Check if polygon surface is visible.
         
         if self.pollist[iPol].Vis == 2:
@@ -555,7 +546,7 @@ class Draw3D:
             if DBG_LVL > 4:
                 print("    - 1 vertice  %2d:  %f  %f  %f" % \
                       (ipnt, aPolRec.Pt1.X, aPolRec.Pt1.Y, aPolRec.Pt1.Z))
-                    
+                
             # Translate coordinates into viewport FOV reference frame.
             xd = aPolRec.Pt1.X - self.fovpt.X
             yd = aPolRec.Pt1.Y - self.fovpt.Y
@@ -583,7 +574,13 @@ class Draw3D:
         # Enque polygon if at least one vertice is in the viewport.
         
         if inflag and ( not self.polPQ.isFull() ):
-            rs    = sqrt(eye2x*eye2x + eye2y*eye2y + eye2z*eye2z)
+            xd    = self.pollist[iPol].Cnt1.X - self.fovpt.X
+            yd    = self.pollist[iPol].Cnt1.Y - self.fovpt.Y
+            zd    = self.pollist[iPol].Cnt1.Z - self.fovpt.Z
+            xs    = self.dcx1*xd + self.dcy1*yd + self.dcz1*zd
+            ys    = self.dcx2*xd + self.dcy2*yd + self.dcz2*zd
+            zs    = self.dcx3*xd + self.dcy3*yd + self.dcz3*zd
+            rs    = sqrt(xs*xs + ys*ys + zs*zs)
             rsmm  = rs*f1K
             irsmm = lroundd(rsmm)
             anElement = HeapElement(pcode + irsmm, iPol)
@@ -594,12 +591,12 @@ class Draw3D:
                                  self.pollist[iPol].Typ,
                                       self.pollist[iPol].Vis,
                                           self.pollist[iPol].Pri,
-                                               eye2x, eye2y, eye2z, rsmm, irsmm))
+                                               xs, ys, zs, rsmm, irsmm))
             self.polPQ.priorityEnq(deepcopy(anElement))
             if irsmm < 0:
                 print("*** XfrmPoly:  lroundd(rsmm) < 0 for iPol=%hd" % (iPol))
                 self.quitflag = True
-
+                
         self.pollist[iPol].Flg = inflag
 
 
@@ -621,7 +618,7 @@ class Draw3D:
                                 (self.pollist[iPol].Cnt1.X,
                                      self.pollist[iPol].Cnt1.Y,
                                          self.pollist[iPol].Cnt1.Z))
-        
+            
         # Move the polygon vertice.
         for ipnt in range(0, len(self.pollist[iPol].Recs)):
             aPolRec       = self.pollist[iPol].Recs[ipnt]
