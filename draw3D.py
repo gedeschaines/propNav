@@ -521,7 +521,16 @@ class Draw3D:
     
         if DBG_LVL > 3:
             print("XfrmPoly:  Polygon # %d" % (iPol))
+            
+        # Compute eye vector to polygon centroid in viewport.
         
+        eye1x = self.pollist[iPol].Cnt1.X - self.fovpt.X
+        eye1y = self.pollist[iPol].Cnt1.Y - self.fovpt.Y
+        eye1z = self.pollist[iPol].Cnt1.Z - self.fovpt.Z
+        eye2x = self.dcx1*eye1x + self.dcy1*eye1y + self.dcz1*eye1z
+        eye2y = self.dcx2*eye1x + self.dcy2*eye1y + self.dcz2*eye1z
+        eye2z = self.dcx3*eye1x + self.dcy3*eye1y + self.dcz3*eye1z
+            
         # Check if polygon surface is visible.
         
         if self.pollist[iPol].Vis == 2:
@@ -529,7 +538,7 @@ class Draw3D:
             nrm2x = self.dcx1*nrm1.X + self.dcy1*nrm1.Y + self.dcz1*nrm1.Z
             nrm2y = self.dcx2*nrm1.X + self.dcy2*nrm1.Y + self.dcz2*nrm1.Z
             nrm2z = self.dcx3*nrm1.X + self.dcy3*nrm1.Y + self.dcz3*nrm1.Z
-            dotp  = nrm2x*self.dcx1 + nrm2y*self.dcx2 + nrm2z*self.dcx3
+            dotp  = nrm2x*eye2x + nrm2y*eye2y + nrm2z*eye2z
             if dotp > 0.0:
                 self.pollist[iPol].Flg = False
                 return
@@ -574,13 +583,7 @@ class Draw3D:
         # Enque polygon if at least one vertice is in the viewport.
         
         if inflag and ( not self.polPQ.isFull() ):
-            xd    = self.pollist[iPol].Cnt1.X - self.fovpt.X
-            yd    = self.pollist[iPol].Cnt1.Y - self.fovpt.Y
-            zd    = self.pollist[iPol].Cnt1.Z - self.fovpt.Z
-            xs    = self.dcx1*xd + self.dcy1*yd + self.dcz1*zd
-            ys    = self.dcx2*xd + self.dcy2*yd + self.dcz2*zd
-            zs    = self.dcx3*xd + self.dcy3*yd + self.dcz3*zd
-            rs    = sqrt(xs*xs + ys*ys + zs*zs)
+            rs    = sqrt(eye2x*eye2x + eye2y*eye2y + eye2z*eye2z)
             rsmm  = rs*f1K
             irsmm = lroundd(rsmm)
             anElement = HeapElement(pcode + irsmm, iPol)
@@ -591,7 +594,7 @@ class Draw3D:
                                  self.pollist[iPol].Typ,
                                       self.pollist[iPol].Vis,
                                           self.pollist[iPol].Pri,
-                                               xs, ys, zs, rsmm, irsmm))
+                                               eye2x, eye2y, eye2z, rsmm, irsmm))
             self.polPQ.priorityEnq(deepcopy(anElement))
             if irsmm < 0:
                 print("*** XfrmPoly:  lroundd(rsmm) < 0 for iPol=%hd" % (iPol))
