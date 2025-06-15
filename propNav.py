@@ -196,7 +196,7 @@ PLOT_FIGS[12] = True
 
 # Set missile type and acceleration maximum.
 
-SAM = 1  # For engagements described in Caveats section of propNav README.
+SAM = 1  # For engagements described in Sample Cases section of propNav README.
 AAM = 2  # For engagements presented in Section 3, Modules 3 & 4, Section 4,
          # Module 4 of ref [4], and Section 2, Module 3 of ref [5].
 MSL = SAM
