@@ -1307,7 +1307,12 @@ class Draw3D:
                 # unit vector from missile to target.
                 self.fovpt.X = XM - fTwo*UXTM
                 self.fovpt.Y = YM - fTwo*UYTM
-                self.fovpt.Z = dmin(ZM - fTwo*UZTM + fHalf, -0.1)  # keep fovpt above ground
+                if self.mslType == 1:
+                    # Keep fovpt below SAM missile and above ground.
+                    self.fovpt.Z = dmin(ZM - fTwo*UZTM + fHalf, -0.1)
+                else:
+                    # Keep fovpt above AAM missile and above ground.
+                    self.fovpt.Z = dmin(ZM + fTwo*UZTM - fHalf, -0.1)
                 p = atan2(UYTM, UXTM)  # Yaw    NOTE: Gimbal lock occurs when Pitch is
                 t = asin(-UZTM)        # Pitch        +/- 90 deg as both UXTM and UYTM
                 r = fZero              # Roll         are zero and Yaw is indeterminate.
