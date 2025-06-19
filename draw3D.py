@@ -54,7 +54,7 @@ import sys
 import time
 from math import floor, sin, cos, tan, asin, atan, atan2, sqrt
 from io import StringIO
-from copy import copy, deepcopy
+from copy import copy
 
 # Numpy and Matplotlib Module Imports
 
@@ -330,15 +330,14 @@ class Draw3D:
                 
         # Add new polygon point record to polygon.
         
-        self.pollist[self.polcnt].Recs.append(deepcopy(newRec))
+        self.pollist[self.polcnt].Recs.append(newRec)
         
         # Initialize polygon centroid summation variables.
 
         sumP = fOne
-        sumX = deepcopy(newRec.Pt0.X)
-        sumY = deepcopy(newRec.Pt0.Y)
-        sumZ = deepcopy(newRec.Pt0.Z)
-
+        sumX = newRec.Pt0.X
+        sumY = newRec.Pt0.Y
+        sumZ = newRec.Pt0.Z
         # Initialize polygon point record for each additional point.
 
         i = 2
@@ -359,13 +358,13 @@ class Draw3D:
                       (i, newRec.Pt0.X, newRec.Pt0.Y, newRec.Pt0.Z))
             
             # Add new polygon point record to polygon. 
-            self.pollist[self.polcnt].Recs.append(deepcopy(newRec))
-            
+            self.pollist[self.polcnt].Recs.append(newRec)
+    
             # Increment polygon centroid summation variables.
             sumP = sumP + fOne
-            sumX = sumX + deepcopy(newRec.Pt0.X)
-            sumY = sumY + deepcopy(newRec.Pt0.Y)
-            sumZ = sumZ + deepcopy(newRec.Pt0.Z)
+            sumX = sumX + newRec.Pt0.X
+            sumY = sumY + newRec.Pt0.Y
+            sumZ = sumZ + newRec.Pt0.Z
             
             # Increment polygon point counter.
             i = i + 1
@@ -573,8 +572,8 @@ class Draw3D:
             aPolRec.Pt2.Z = zs
             if DBG_LVL > 4:
                 print("    - 2 vertice  %2d:  %f  %f  %f" % \
-                      (ipnt, aPolRec.Pt2.X, aPolRec.Pt2.Y, aPolRec.Pt2.Z))         
-            self.pollist[iPol].Recs[ipnt] = deepcopy(aPolRec)
+                      (ipnt, aPolRec.Pt2.X, aPolRec.Pt2.Y, aPolRec.Pt2.Z))
+            self.pollist[iPol].Recs[ipnt] = aPolRec
             
             # Check if point is in front of view point.
             if xs >= fZero:
@@ -595,7 +594,7 @@ class Draw3D:
                                       self.pollist[iPol].Vis,
                                           self.pollist[iPol].Pri,
                                                eye2x, eye2y, eye2z, rsmm, irsmm))
-            self.polPQ.priorityEnq(deepcopy(anElement))
+            self.polPQ.priorityEnq(anElement)
             if irsmm < 0:
                 print("*** XfrmPoly:  lroundd(rsmm) < 0 for iPol=%hd" % (iPol))
                 self.quitflag = True
@@ -635,8 +634,8 @@ class Draw3D:
                 print("    - vertice :  %f  %f  %f" % \
                                        (aPolRec.Pt1.X,
                                             aPolRec.Pt1.Y,
-                                                aPolRec.Pt1.Z))          
-            self.pollist[iPol].Recs[ipnt] = deepcopy(aPolRec)
+                                                aPolRec.Pt1.Z))
+            self.pollist[iPol].Recs[ipnt] = aPolRec
             
         # Compute moved polygon normal assuming traversal from point 0 
         # to point 1 is in a counterclockwise direction.
@@ -993,9 +992,9 @@ class Draw3D:
                               (offset.X, offset.Y, offset.Z))
 
                 if ( (polcol >= 0) and (polcol < 8) ):
-                    self.MakePol(polpnt, polpri, poltyp, polvis, Colors[polcol], deepcopy(offset))
+                    self.MakePol(polpnt, polpri, poltyp, polvis, Colors[polcol], offset)
                 else:
-                    self.MakePol(polpnt, polpri, poltyp, polvis, Colors[Black], deepcopy(offset))
+                    self.MakePol(polpnt, polpri, poltyp, polvis, Colors[Black], offset)
 
             line = lfni.readline()
     
