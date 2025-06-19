@@ -608,9 +608,9 @@ class Draw3D:
         """
     
         # Move the polygon centroid.
-        xb                        = copy(self.pollist[iPol].Cnt0.X)
-        yb                        = copy(self.pollist[iPol].Cnt0.Y)
-        zb                        = copy(self.pollist[iPol].Cnt0.Z)
+        xb                        = self.pollist[iPol].Cnt0.X
+        yb                        = self.pollist[iPol].Cnt0.Y
+        zb                        = self.pollist[iPol].Cnt0.Z
         self.pollist[iPol].Cnt1.X = self.dcx1*xb + self.dcx2*yb + self.dcx3*zb + px
         self.pollist[iPol].Cnt1.Y = self.dcy1*xb + self.dcy2*yb + self.dcy3*zb + py
         self.pollist[iPol].Cnt1.Z = self.dcz1*xb + self.dcz2*yb + self.dcz3*zb + pz
@@ -624,9 +624,9 @@ class Draw3D:
         # Move the polygon vertice.
         for ipnt in range(0, len(self.pollist[iPol].Recs)):
             aPolRec       = self.pollist[iPol].Recs[ipnt]
-            xb            = copy(aPolRec.Pt0.X)
-            yb            = copy(aPolRec.Pt0.Y)
-            zb            = copy(aPolRec.Pt0.Z)
+            xb            = aPolRec.Pt0.X
+            yb            = aPolRec.Pt0.Y
+            zb            = aPolRec.Pt0.Z
             aPolRec.Pt1.X = self.dcx1*xb + self.dcx2*yb + self.dcx3*zb + px
             aPolRec.Pt1.Y = self.dcy1*xb + self.dcy2*yb + self.dcy3*zb + py
             aPolRec.Pt1.Z = self.dcz1*xb + self.dcz2*yb + self.dcz3*zb + pz
