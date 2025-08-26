@@ -18,7 +18,7 @@ DESC:  Data structures and methods for a priority queue implemented
        a textbook on programming and data structures using Pascal.    
 REFS:
     
-  [1] This Python script was refactored from pquelib.c available at:
+  [1] This Python script was translated from pquelib.c available at:
       https://github.com/gedeschaines/threeD/blob/master/src/pquelib.c
 
 

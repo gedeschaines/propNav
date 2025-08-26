@@ -12,7 +12,7 @@ DESC:  Three dimensional (3D) drawing of objects defined as collections
        of polygons.
 REFS:
      
-  [1] This Python script was refactored from threeD.c available at:
+  [1] This Python script was translated from threeD.c available at:
       https://github.com/gedeschaines/threeD/blob/master/src/threeD.c
 
 

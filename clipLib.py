@@ -15,7 +15,7 @@ DESC:  Methods to determine clipping of a given line segment with
        by David F. Rogers, published by McGraw-Hill, Inc., 1985.
 REFS:
      
-  [1] This Python script was refactored from cliplib.c available at:
+  [1] This Python script was translated from cliplib.c available at:
       https://github.com/gedeschaines/threeD/blob/master/src/cliblib.c
 
 

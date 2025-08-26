@@ -18,7 +18,7 @@
 #       100% effective, but bounded commanded acceleration, and perfect
 #       command response.
 #
-# Note: Refactored from a Mathcad 3-DOF kinematic ideal proportional
+# Note: Translated from a Mathcad 3-DOF kinematic ideal proportional
 #       navigation guidance missile flyout model developed in 1997.
 #       The inertial (fixed) reference frame Cartesian (+X, +Y, +Z)
 #       coordinate system in the Mathcad model correlates with (East,
@@ -85,7 +85,7 @@
 # 
 # Disclaimer:
 #
-# See DISCLAIMER
+#   See DISCLAIMER file.
 #
 """
 

@@ -11,7 +11,7 @@ A 3-DOF point mass kinematic model of an ideal proportional navigation guidance 
 
 ## Overview ##
 
-The **propNav** program was refactored from a Mathcad variant developed in the mid to late 1990's as a tool to perform rudimentary evaluations of surface to air missile (SAM) engagement capabilities against likely targets. During that time, a high fidelity 6-DOF missile simulation was utilized to perform detailed engineering analysis of candidate SAM performance in specific target engagement scenarios. However, when evaluating performance envelopes for multiple engagement scenarios requiring hundreds of run cases, a 3-DOF was easier to setup, and used much less computing resources and time than the 6-DOF. Of course, there was a known and acceptable loss of realism and accuracy when employing a 3-DOF in this manner.
+The **propNav** program was translated from a Mathcad variant developed in the mid to late 1990's as a tool to perform rudimentary evaluations of surface to air missile (SAM) engagement capabilities against likely targets. During that time, a high fidelity 6-DOF missile simulation was utilized to perform detailed engineering analysis of candidate SAM performance in specific target engagement scenarios. However, when evaluating performance envelopes for multiple engagement scenarios requiring hundreds of run cases, a 3-DOF was easier to setup, and used much less computing resources and time than the 6-DOF. Of course, there was a known and acceptable loss of realism and accuracy when employing a 3-DOF in this manner.
 
 Also included in this repository are the components of **pyThreeD**, a Python 3 variant of the X11/C **[threeD](https://github.com/gedeschaines/threeD)** program. As with **propNav**, this Python 3 program only requires the NumPy and Matplotlib modules.
 
@@ -27,11 +27,11 @@ The repository main directory contains this README file, plain text disclaimer f
 
 The main directory also contains Python 3 script files which comprise **pyThreeD**, a Python 3 variant of the X11/C **threeD** program.
 
-+ pyThreeD.py - Python script for **pyThreeD** main routine refactored from [threeD.c](https://github.com/gedeschaines/threeD/blob/master/src/threeD.c) source file
++ pyThreeD.py - Python script for **pyThreeD** main routine translated from [threeD.c](https://github.com/gedeschaines/threeD/blob/master/src/threeD.c) source file
 + pyThreeD.ipynb - Jupyter notebook implementation of pyThreeD.py
-+ draw3D.py - Faceted shape 3D rendering routines refactored from [draw3D.c](https://github.com/gedeschaines/threeD/blob/master/src/draw3D.c) source file
-+ pquelib.py - Priority queue routines refactored from [pquelib.c](https://github.com/gedeschaines/threeD/blob/master/src/pquelib.c) source file
-+ cliplib.py - Polygon clipping routines refactored from [cliplib.c](https://github.com/gedeschaines/threeD/blob/master/src/cliplib.c) source file
++ draw3D.py - Faceted shape 3D rendering routines translated from [draw3D.c](https://github.com/gedeschaines/threeD/blob/master/src/draw3D.c) source file
++ pquelib.py - Priority queue routines translated from [pquelib.c](https://github.com/gedeschaines/threeD/blob/master/src/pquelib.c) source file
++ cliplib.py - Polygon clipping routines translated from [cliplib.c](https://github.com/gedeschaines/threeD/blob/master/src/cliplib.c) source file
 
 The contents of each subdirectory are as follows:
 

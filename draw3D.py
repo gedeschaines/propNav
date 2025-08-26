@@ -12,7 +12,7 @@ DESC:  Routines to load, transform and draw polygon data describing
        objects in a 3D world space.
 REFS:
      
-  [1] This Python script was refactored from draw3D.c available at:
+  [1] This Python script was translated from draw3D.c available at:
       https://github.com/gedeschaines/threeD/blob/master/src/draw3D.c    
     
 NOTE:  Cartesian coordinate frames for world space, field-of-view
