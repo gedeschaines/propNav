@@ -15,7 +15,11 @@ DESC:  Data structures and methods for a priority queue implemented
          http://algs4.cs.princeton.edu/24pq/
 
        Methods presented herein were derived from those presented in
-       a textbook on programming and data structures using Pascal.    
+       a textbook on programming and data structures using Pascal. A
+       Pythonic implmentation of priority queues with binary heaps is
+       presented at this link:
+
+         https://bradfieldcs.com/algos/trees/priority-queues-with-binary-heaps/   
 REFS:
     
   [1] This Python script was translated from pquelib.c available at:
