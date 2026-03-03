@@ -2,9 +2,11 @@ __pycache__/
 .ipynb_checkpoints/
 .virtual_documents/
 .spyproject/
+.vscode/
 tmp/
 out/TXYZ.OUT.*
 !out/TXYZ.OUT.124*
 Ximg/
+*.code-workspace
 *.pyc
 *\~

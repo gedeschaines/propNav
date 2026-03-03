@@ -8,8 +8,8 @@
 FILE:  pyThreeD.py
 DATE:  06 DEC 2023
 AUTH:  G. E. Deschaines
-DESC:  Three dimensional (3D) drawing of objects defined as collections
-       of polygons.
+DESC:  Three dimensional (3D) drawing of missile/target engagement trajectory
+       objects defined as collections of polygons.
 REFS:
      
   [1] This Python script was translated from threeD.c available at:
@@ -34,9 +34,9 @@ except ImportError:
 
 from draw3D import Draw3D
 
-global fig       # Instantiated matplotlib pyplot figure
-global draw3D    # Instantiated Draw3D object
-global started   # Draw3D.MainLoop method started flag
+global theFigure  # Instantiated matplotlib pyplot figure
+global theDraw3D  # Instantiated Draw3D object
+global started    # Draw3D.MainLoop method started flag
 
 started = False
 
@@ -45,8 +45,8 @@ def onClick(event):
     """
     Mouse button pressed handler
     """
-    global fig
-    global draw3D
+    global theFigure
+    global theDraw3D
     global started
     
     #b = event.button
@@ -54,18 +54,15 @@ def onClick(event):
     #y = event.ydata
     if not started:
         started = True
-        draw3D.MainLoop()
-        if draw3D.doneflag:
-            fig.clear()
-            plt.close(fig)
+        theDraw3D.MainLoop()
+        if theDraw3D.doneflag:
+            theFigure.clear()
+            plt.close(theFigure)
             sys.exit()
         started = False
        
 
 if __name__ == "__main__":
-    
-    global fig
-    global draw3D
     
     # Set image save flag and rate (FPS).
     
@@ -88,23 +85,27 @@ if __name__ == "__main__":
     File  = "./out/TXYZ.OUT." + CaseId
     title = "pyThreeD - " + File
       
-    # Instantiate a matplotlib pyplot figure.
-    
-    #fig = plt.figure(figsize=(6.0,6.0), dpi=100.0)     # 465x462 viewport
-    fig = plt.figure(figsize=(8.0,6.0), dpi=100.0)     # 620x462 viewport
-    #fig = plt.figure(figsize=(8.0,8.0), dpi=100.0)     # 620x616 viewport
-    #fig = plt.figure(figsize=(7.74,7.78), dpi=100.0)   # 600x599 viewport
-    #fig = plt.figure(figsize=(10.0,8.0), dpi=100.0)    # 775x616 viewport
-    #fig = plt.figure(figsize=(10.32,7.80), dpi=100.0)  # 800x601 viewport
-    
+    # Instantiate the matplotlib pyplot figure for display of
+    # engagement rendering animation.
+
+    # For 100 dots-per-inch (dpi):
+    #figsize=(6.0,6.0)     # 465x462 viewport
+    figsize=(8.0,6.0)      # 620x462 viewport
+    #figsize=(8.0,8.0)     # 620x616 viewport
+    #figsize=(7.74,7.78)   # 600x599 viewport
+    #figsize=(10.0,8.0)    # 775x616 viewport
+    #figsize=(10.32,7.80)  # 800x601 viewport
+
+    theFigure = plt.figure(figsize=figsize, dpi=100.0)
+
     try:
-        fig.set_tight_layout(True)
+        theFigure.set_tight_layout(True)
     except:
-        fig.set_layout_engine('tight')
+        theFigure.set_layout_engine('tight')
         
     # Specify plotting layout and parameters.
     
-    ax = fig.add_subplot(111, autoscale_on=False, animated=False)
+    ax = theFigure.add_subplot(111, autoscale_on=False, animated=False)
     ax.set_title(title)
     ax.set_xticks([])
     ax.set_yticks([])
@@ -116,25 +117,27 @@ if __name__ == "__main__":
     ax.set_xlim(0.0, w)
     ax.set_ylim(h, 0.0)
     ax.set_facecolor('#d8dcd6')  # light gray
-    fig.canvas.draw()
+    theFigure.canvas.draw()
     
-    # Instantiate a Draw3D object.
+    # Instantiate the Draw3D object to perform missile/target
+    # engagement rendering.
     
     msltyp = int(CaseId)//1000
-    draw3D = Draw3D(txyzFile=File, mslType=msltyp, w=w, h=h, fig=fig, ax=ax,
-                    imgSave=img_Save, imgFPS=img_FPS)
+    theDraw3D = Draw3D(txyzFile=File, mslType=msltyp,
+                       w=w, h=h, fig=theFigure, ax=ax,
+                       imgSave=img_Save, imgFPS=img_FPS)
     
     # Load object shape polygon data.
     
-    draw3D.ReadPolyData()
+    theDraw3D.ReadPolyData()
     
     # Assign mouse button press handler.
     
-    cidbtn = fig.canvas.mpl_connect('button_press_event', onClick)
+    cidbtn = theFigure.canvas.mpl_connect('button_press_event', onClick)
     
     # Assign key press event handler.
     
-    cidkey = fig.canvas.mpl_connect('key_press_event', draw3D.onPress)
+    cidkey = theFigure.canvas.mpl_connect('key_press_event', theDraw3D.onPress)
     
     # Present instructions, then display figure window for rendering. 
     
@@ -158,10 +161,9 @@ if __name__ == "__main__":
     print("Press Q key to close figure (should only press after X key press).")
     print("Press Esc key to exit program (should only press before X key press).")
 
-    
     plt.show(block=True)
     
-    # Execution terminated, delete draw3D object and exit.
+    # Execution terminated, delete the Draw3D object and exit.
     
-    del draw3D
+    del theDraw3D
  
